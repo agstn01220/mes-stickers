@@ -7,13 +7,15 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Stickers">
-<title>Mes Stickers</title>
+<meta name="apple-mobile-web-app-title" content="No Borders">
+<title>No Borders</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap">
 <style>
   :root {
     --bg: #0f1115;
@@ -22,7 +24,7 @@
     --line: #2d3240;
     --text: #f3f4f6;
     --muted: #9aa3b2;
-    --accent: #ff3d57;
+    --accent: #e3263f;
     --accent-2: #ffd23d;
     --ok: #3ddc84;
     --safe-b: env(safe-area-inset-bottom, 0px);
@@ -36,7 +38,7 @@
 
   header { display: flex; align-items: center; gap: 12px; padding: calc(10px + var(--safe-t)) 16px 10px;
     background: var(--bg); border-bottom: 1px solid var(--line); z-index: 5; }
-  header h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  header h1 { font-family: "Anton", Impact, "Arial Black", sans-serif; font-weight: 400; font-size: 23px; margin: 0; letter-spacing: 1px; }
   header h1 span { color: var(--accent); }
   #stats { color: var(--muted); font-size: 13px; margin-left: auto; white-space: nowrap; }
   .icon-btn { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; width: 36px; height: 36px;
@@ -45,7 +47,7 @@
   main { flex: 1; position: relative; overflow: hidden; }
   .view { position: absolute; inset: 0; display: none; }
   .view.active { display: block; }
-  #map { position: absolute; inset: 0; background: #0b1d33; }
+  #map { position: absolute; inset: 0; background: #03040b center / cover no-repeat; }
   #fit-btn { position: absolute; right: 12px; top: 12px; z-index: 500; }
   #layer-btn { position: absolute; left: 12px; top: 12px; z-index: 500; background: var(--panel); border: 1px solid var(--line);
     border-radius: 10px; height: 36px; padding: 0 12px; font-size: 14px; font-weight: 600; }
@@ -92,11 +94,11 @@
   h3.sub { font-size: 15px; margin: 18px 0 6px; }
 
   /* Markers */
-  .pin { width: 48px; height: 56px; position: relative; }
+  .pin { width: 48px; height: 56px; cursor: pointer; }
   .pin img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); background: #ddd; display: block; }
   .pin::after { content: ""; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
     border: 7px solid transparent; border-top: 9px solid #fff; border-bottom: 0; }
-  .cl { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700;
+  .cl { cursor: pointer; width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700;
     display: grid; place-items: center; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
   .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
 
@@ -135,12 +137,23 @@
     padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; display: none; max-width: calc(100% - 32px); }
   .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .leaflet-container { font: inherit; }
+  .maplibregl-ctrl-attrib { font-size: 11px; }
+  .minimap { background: #03040b; }
+
+  /* Visionneuse photo (zoom) */
+  #viewer { position: fixed; inset: 0; z-index: 3000; background: #000; display: flex; align-items: center; justify-content: center;
+    overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #viewer[hidden] { display: none; }
+  #viewer img { max-width: 100%; max-height: 100%; transform-origin: center; will-change: transform; pointer-events: none; }
+  #viewer-close { position: absolute; top: calc(12px + var(--safe-t)); right: 12px; z-index: 1; }
+  #viewer-hint { position: absolute; bottom: calc(18px + var(--safe-b)); left: 50%; transform: translateX(-50%); font-size: 13px;
+    color: #ccc; background: rgba(0,0,0,.6); padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+  .zoomable { cursor: zoom-in; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Mes <span>Stickers</span></h1>
+  <h1>NO <span>BORDERS</span></h1>
   <div id="stats"></div>
 </header>
 
@@ -209,7 +222,7 @@
 <div class="sheet-wrap" id="sh-detail">
   <div class="sheet">
     <div class="sheet-head"><h2 id="d-title">Sticker</h2><button class="icon-btn" data-close>✕</button></div>
-    <img class="big" id="d-img" alt="">
+    <img class="big zoomable" id="d-img" alt="" title="Toucher pour zoomer">
     <div class="meta">
       <h3 id="d-place"></h3>
       <p id="d-date"></p>
@@ -246,10 +259,15 @@
   </div>
 </div>
 
+<div id="viewer" hidden>
+  <img id="viewer-img" alt="">
+  <button class="icon-btn" id="viewer-close" aria-label="Fermer">✕</button>
+  <div id="viewer-hint">Pince ou double-tape pour zoomer</div>
+</div>
+
 <div id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.js"></script>
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
@@ -420,58 +438,150 @@ function forgetUrls(id) {
   for (const key of ["photo", "thumb"]) { const k = id + key; if (urlCache.has(k)) { URL.revokeObjectURL(urlCache.get(k)); urlCache.delete(k); } }
 }
 
-// ---------- Carte principale ----------
+// ---------- Carte principale : globe 3D ----------
 // Deux fonds : satellite en couleurs réelles (avec routes et noms de lieux) ou plan OpenStreetMap
 const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
-function makeBase(kind) {
-  if (kind === "plan") return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 });
-  const o = { maxNativeZoom: 18, maxZoom: 19 };
-  return L.layerGroup([
-    L.tileLayer(ESRI + "World_Imagery/MapServer/tile/{z}/{y}/{x}", { ...o, attribution: "Imagerie © Esri, Maxar, Earthstar Geographics" }),
-    L.tileLayer(ESRI + "Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", o),
-    L.tileLayer(ESRI + "Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", o)
-  ]);
-}
 let baseKind = "satellite";
 try { baseKind = localStorage.getItem("baseKind") || "satellite"; } catch (e) {}
-const bases = new Map();
-function setBase(m) { bases.get(m)?.remove(); bases.set(m, makeBase(baseKind).addTo(m)); }
+const SAT_LAYERS = ["img", "roads", "places"];
+function makeStyle() {
+  const vis = sat => ({ visibility: (baseKind === "satellite") === sat ? "visible" : "none" });
+  const esri = (path, extra = {}) => ({ type: "raster", tiles: [ESRI + path + "/MapServer/tile/{z}/{y}/{x}"], tileSize: 256, maxzoom: 18, ...extra });
+  return {
+    version: 8,
+    sources: {
+      img: esri("World_Imagery", { attribution: "Imagerie © Esri, Maxar, Earthstar Geographics" }),
+      roads: esri("Reference/World_Transportation"),
+      places: esri("Reference/World_Boundaries_and_Places"),
+      osm: { type: "raster", tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"], tileSize: 256, maxzoom: 19, attribution: "© OpenStreetMap" }
+    },
+    layers: [
+      { id: "img", type: "raster", source: "img", layout: vis(true) },
+      { id: "roads", type: "raster", source: "roads", layout: vis(true) },
+      { id: "places", type: "raster", source: "places", layout: vis(true) },
+      { id: "osm", type: "raster", source: "osm", layout: vis(false) }
+    ]
+  };
+}
+function applyBase(m) {
+  if (!m || !m.getLayer("osm")) return;
+  for (const id of SAT_LAYERS) m.setLayoutProperty(id, "visibility", baseKind === "satellite" ? "visible" : "none");
+  m.setLayoutProperty("osm", "visibility", baseKind === "plan" ? "visible" : "none");
+}
 function renderLayerBtn() { $("#layer-btn").textContent = baseKind === "satellite" ? "🗺️ Plan" : "🛰️ Satellite"; }
 
-const map = L.map("map", { zoomControl: false, worldCopyJump: true, minZoom: 2 }).setView([25, 10], 2);
-setBase(map);
+// Fond espace : étoiles et nébuleuses dessinées une fois
+function starfield() {
+  const c = document.createElement("canvas"), w = c.width = 1400, h = c.height = 1400, x = c.getContext("2d");
+  x.fillStyle = "#03040b"; x.fillRect(0, 0, w, h);
+  for (const [cx, cy, r, col] of [[320, 360, 460, "rgba(120,60,200,.20)"], [1060, 980, 560, "rgba(40,90,220,.18)"], [940, 260, 320, "rgba(220,40,90,.12)"], [260, 1120, 300, "rgba(40,170,200,.10)"]]) {
+    const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+    g.addColorStop(0, col); g.addColorStop(1, "rgba(0,0,0,0)");
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+  }
+  for (let i = 0; i < 1800; i++) {
+    const k = Math.random();
+    x.fillStyle = `rgba(255,255,255,${(0.25 + k * 0.75).toFixed(2)})`;
+    x.beginPath(); x.arc(Math.random() * w, Math.random() * h, k > 0.985 ? 1.7 : 0.25 + k * 0.8, 0, 7); x.fill();
+  }
+  return c.toDataURL("image/jpeg", 0.85);
+}
+$("#map").style.backgroundImage = `url(${starfield()})`;
+
+// Zoom pour que le globe occupe ~80 % de l'écran
+const globeZoom = () => Math.max(0.2, Math.log2(Math.min(innerWidth, innerHeight - 140) * 0.8 * Math.PI / 512));
+const map = new maplibregl.Map({
+  container: "map", style: makeStyle(), center: [10, 25], zoom: globeZoom(),
+  attributionControl: { compact: true }, maxPitch: 70
+});
+map.on("style.load", () => map.setProjection({ type: "globe" }));
 renderLayerBtn();
 $("#layer-btn").onclick = () => {
   baseKind = baseKind === "satellite" ? "plan" : "satellite";
   try { localStorage.setItem("baseKind", baseKind); } catch (e) {}
-  setBase(map);
-  if (addMap) setBase(addMap);
+  applyBase(map); applyBase(addMap);
   renderLayerBtn();
 };
-const cluster = L.markerClusterGroup({
-  showCoverageOnHover: false, maxClusterRadius: 50,
-  iconCreateFunction: c => L.divIcon({ html: `<div class="cl">${c.getChildCount()}</div>`, className: "", iconSize: [44, 44] })
-});
-map.addLayer(cluster);
-const markers = new Map();
 
-function renderMap() {
-  cluster.clearLayers(); markers.clear();
-  for (const s of stickers) {
-    const m = L.marker([s.lat, s.lng], {
-      icon: L.divIcon({ className: "", html: `<div class="pin"><img src="${blobUrl(s, "thumb")}" alt=""></div>`, iconSize: [48, 56], iconAnchor: [24, 56] })
-    });
-    m.on("click", () => openDetail(s.id));
-    markers.set(s.id, m);
-    cluster.addLayer(m);
+// Stickers : source GeoJSON regroupée (clusters) + marqueurs photo en HTML
+let mapReady = false, domMarkers = {}, onScreen = {};
+const stickersGeoJSON = () => ({
+  type: "FeatureCollection",
+  features: stickers.map(s => ({ type: "Feature", geometry: { type: "Point", coordinates: [s.lng, s.lat] }, properties: { id: s.id } }))
+});
+map.on("load", () => {
+  map.addSource("stickers", { type: "geojson", data: stickersGeoJSON(), cluster: true, clusterRadius: 55, clusterMaxZoom: 15 });
+  map.addLayer({ id: "stickers-hit", type: "circle", source: "stickers", paint: { "circle-radius": 1, "circle-opacity": 0 } });
+  mapReady = true;
+  const attrib = map.getContainer().querySelector(".maplibregl-ctrl-attrib");
+  attrib?.classList.remove("maplibregl-compact-show"); attrib?.removeAttribute("open");
+  map.on("render", () => { if (map.isSourceLoaded("stickers")) updateMarkers(); });
+});
+function pinEl(s) {
+  const el = document.createElement("div");
+  el.className = "pin";
+  el.innerHTML = `<img src="${blobUrl(s, "thumb")}" alt="">`;
+  el.addEventListener("click", e => { e.stopPropagation(); openDetail(s.id); });
+  return el;
+}
+function clusterEl(p, lngLat) {
+  const el = document.createElement("div");
+  el.className = "cl"; el.textContent = p.point_count;
+  el.addEventListener("click", async e => {
+    e.stopPropagation();
+    try { const z = await map.getSource("stickers").getClusterExpansionZoom(p.cluster_id); map.easeTo({ center: lngLat, zoom: z + 0.5 }); } catch (err) {}
+  });
+  return el;
+}
+function updateMarkers() {
+  const next = {};
+  for (const f of map.querySourceFeatures("stickers")) {
+    const p = f.properties, c = f.geometry.coordinates;
+    const key = p.cluster ? `c${p.cluster_id}_${p.point_count}` : p.id;
+    if (next[key]) continue;
+    let m = domMarkers[key];
+    if (!m) {
+      const s = !p.cluster && stickers.find(x => x.id === p.id);
+      if (!p.cluster && !s) continue;
+      m = domMarkers[key] = new maplibregl.Marker({ element: p.cluster ? clusterEl(p, c) : pinEl(s), anchor: p.cluster ? "center" : "bottom", opacityWhenCovered: "0" }).setLngLat(c);
+    }
+    next[key] = m;
+    if (!onScreen[key]) m.addTo(map);
   }
+  for (const k in onScreen) if (!next[k]) onScreen[k].remove();
+  onScreen = next;
+}
+function renderMap() {
   $("#empty-map").hidden = stickers.length > 0;
+  for (const k in onScreen) onScreen[k].remove();
+  onScreen = {}; domMarkers = {};
+  if (mapReady) map.getSource("stickers").setData(stickersGeoJSON());
+}
+function fitBoundsOf(list, maxZoom) {
+  if (list.length === 1) return map.flyTo({ center: [list[0].lng, list[0].lat], zoom: Math.min(maxZoom, 14) });
+  const b = new maplibregl.LngLatBounds();
+  list.forEach(s => b.extend([s.lng, s.lat]));
+  map.fitBounds(b, { padding: 60, maxZoom, duration: 1500 });
 }
 function fitAll() {
-  if (!stickers.length) return map.setView([25, 10], 2);
-  map.fitBounds(L.latLngBounds(stickers.map(s => [s.lat, s.lng])), { padding: [50, 50], maxZoom: 15 });
+  if (!stickers.length) return map.easeTo({ center: [10, 25], zoom: globeZoom(), pitch: 0, bearing: 0 });
+  fitBoundsOf(stickers, 15);
 }
 $("#fit-btn").onclick = fitAll;
+
+// Le globe tourne tout seul quand on ne le touche pas (vue monde uniquement)
+let userBusy = false, spinTimer;
+function spin() {
+  if (!mapReady || userBusy || currentView !== "map" || map.getZoom() > 3.5) return;
+  const c = map.getCenter(); c.lng -= 6;
+  map.easeTo({ center: c, duration: 1000, easing: t => t });
+}
+const hold = () => { userBusy = true; clearTimeout(spinTimer); };
+const release = () => { clearTimeout(spinTimer); spinTimer = setTimeout(() => { userBusy = false; spin(); }, 5000); };
+map.on("mousedown", hold); map.on("touchstart", hold);
+map.on("mouseup", release); map.on("touchend", release);
+map.on("wheel", () => { hold(); release(); });
+map.on("moveend", spin);
 
 // ---------- Galerie ----------
 let countryFilter = null;
@@ -581,18 +691,19 @@ $("#view-home").onclick = e => {
   const act = b.dataset.act;
   if (act === "add") openSheet("#sh-choice");
   else if (act === "sticker") openDetail(b.dataset.id);
-  else if (act === "city" && topCity) showView("map", () => map.fitBounds(L.latLngBounds(topCity.list.map(s => [s.lat, s.lng])), { padding: [50, 50], maxZoom: 16 }));
+  else if (act === "city" && topCity) showView("map", () => fitBoundsOf(topCity.list, 16));
   else if (act === "far") far ? openDetail(far.s.id) : $("#nav-settings").click();
 };
 
 // ---------- Onglets ----------
-let mapFitted = false;
+let mapFitted = false, currentView = "home";
 function showView(name, after) {
+  currentView = name;
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
   document.querySelectorAll("nav .tab").forEach(t => t.classList.toggle("on", t.dataset.view === name));
   if (name === "map") setTimeout(() => {
-    map.invalidateSize();
-    if (after) after(); else if (!mapFitted) fitAll();
+    map.resize();
+    if (after) after(); else if (!mapFitted) fitAll(); else spin();
     mapFitted = true;
   }, 0);
 }
@@ -623,18 +734,18 @@ function setStatus(html, cls = "") { const s = $("#add-status"); s.className = "
 
 function ensureAddMap() {
   if (addMap) return;
-  addMap = L.map("add-map", { zoomControl: false, attributionControl: false }).setView([25, 10], 2);
-  setBase(addMap);
-  addMap.on("click", e => setDraftPos(e.latlng.lat, e.latlng.lng, "manual"));
+  addMap = new maplibregl.Map({ container: "add-map", style: makeStyle(), center: [10, 25], zoom: 1, attributionControl: false });
+  addMap.on("click", e => setDraftPos(e.lngLat.lat, e.lngLat.lng, "manual"));
 }
 function setDraftPos(lat, lng, source, accuracy = null) {
   if (!draft) return;
   Object.assign(draft, { lat, lng, source, accuracy });
   if (!addMarker) {
-    addMarker = L.marker([lat, lng], { draggable: true, icon: L.divIcon({ className: "", html: '<div class="dot"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }) }).addTo(addMap);
-    addMarker.on("dragend", () => { const p = addMarker.getLatLng(); setDraftPos(p.lat, p.lng, "manual"); });
-  } else addMarker.setLatLng([lat, lng]);
-  if (source !== "manual") addMap.setView([lat, lng], 17);
+    const el = document.createElement("div"); el.className = "dot";
+    addMarker = new maplibregl.Marker({ element: el, draggable: true }).setLngLat([lng, lat]).addTo(addMap);
+    addMarker.on("dragend", () => { const p = addMarker.getLngLat(); setDraftPos(p.lat, p.lng, "manual"); });
+  } else addMarker.setLngLat([lng, lat]);
+  if (source !== "manual") addMap.jumpTo({ center: [lng, lat], zoom: 17 });
   const msg = {
     photo: "✅ Position lue dans la photo",
     gps: `✅ Position GPS enregistrée${accuracy ? ` (précision ±${Math.round(accuracy)} m)` : ""}`,
@@ -666,7 +777,7 @@ async function startAdd(file, fromCamera) {
   setStatus('<span class="spinner"></span> Préparation de la photo…');
   openSheet("#sh-add");
   ensureAddMap();
-  setTimeout(() => addMap.invalidateSize(), 50);
+  setTimeout(() => addMap.resize(), 50);
 
   const exif = await readExif(file);
   const pos = fromCamera ? warmPos : null;
@@ -731,7 +842,7 @@ $("#add-save").onclick = async () => {
   draft = null;
   closeSheet("#sh-add");
   renderAll();
-  showView("map", () => map.setView([s.lat, s.lng], 16));
+  showView("map", () => map.flyTo({ center: [s.lng, s.lat], zoom: 16 }));
   toast("Sticker ajouté 🔥");
   fillMissingPlaces();
 };
@@ -753,9 +864,9 @@ function openDetail(id) {
 $("#d-note").onchange = async () => { if (!current) return; current.note = $("#d-note").value.trim(); await dbPut(current); };
 $("#d-onmap").onclick = () => {
   if (!current) return;
-  const s = current, m = markers.get(s.id);
+  const s = current;
   closeSheet("#sh-detail");
-  showView("map", () => m ? cluster.zoomToShowLayer(m, () => map.setView(m.getLatLng(), Math.max(map.getZoom(), 17))) : map.setView([s.lat, s.lng], 17));
+  showView("map", () => map.flyTo({ center: [s.lng, s.lat], zoom: 17 }));
 };
 $("#d-delete").onclick = async () => {
   if (!current || !confirm("Supprimer ce sticker de ta collection ?")) return;
@@ -766,6 +877,68 @@ $("#d-delete").onclick = async () => {
   closeSheet("#sh-detail"); renderAll();
   toast("Sticker supprimé");
 };
+
+// ---------- Visionneuse photo : pincer / double-tap / molette pour zoomer ----------
+const viewer = $("#viewer"), vImg = $("#viewer-img");
+const V = { s: 1, tx: 0, ty: 0, ptrs: new Map(), lastTap: 0, dist: 0, mid: null };
+function vApply() { vImg.style.transform = `translate(${V.tx}px, ${V.ty}px) scale(${V.s})`; }
+function vClamp() {
+  const r = viewer.getBoundingClientRect();
+  const mx = Math.max(0, (vImg.clientWidth * V.s - r.width) / 2), my = Math.max(0, (vImg.clientHeight * V.s - r.height) / 2);
+  V.tx = Math.min(mx, Math.max(-mx, V.tx)); V.ty = Math.min(my, Math.max(-my, V.ty));
+}
+function vZoomAt(k, px, py) {
+  const r = viewer.getBoundingClientRect();
+  const s2 = Math.min(8, Math.max(1, V.s * k)); k = s2 / V.s;
+  const ox = px - r.left - r.width / 2, oy = py - r.top - r.height / 2;
+  V.tx = ox - k * (ox - V.tx); V.ty = oy - k * (oy - V.ty); V.s = s2;
+  if (V.s === 1) V.tx = V.ty = 0;
+  vClamp(); vApply();
+}
+function openViewer(src) {
+  Object.assign(V, { s: 1, tx: 0, ty: 0 }); V.ptrs.clear();
+  vImg.src = src; vApply();
+  viewer.hidden = false;
+}
+const closeViewer = () => { viewer.hidden = true; };
+$("#d-img").onclick = () => { if (current) openViewer(blobUrl(current, "photo")); };
+$("#viewer-close").onclick = e => { e.stopPropagation(); closeViewer(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !viewer.hidden) closeViewer(); });
+viewer.addEventListener("wheel", e => { e.preventDefault(); vZoomAt(Math.exp(-e.deltaY * 0.0025), e.clientX, e.clientY); }, { passive: false });
+viewer.addEventListener("pointerdown", e => {
+  if (e.target.closest("#viewer-close")) return;
+  try { viewer.setPointerCapture(e.pointerId); } catch (err) {}
+  V.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
+  if (V.ptrs.size === 2) {
+    const [a, b] = [...V.ptrs.values()];
+    V.dist = Math.hypot(a.x - b.x, a.y - b.y); V.mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+});
+viewer.addEventListener("pointermove", e => {
+  const p = V.ptrs.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  if (V.ptrs.size === 2) {
+    const [a, b] = [...V.ptrs.values()];
+    const dist = Math.hypot(a.x - b.x, a.y - b.y), mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    V.tx += mid.x - V.mid.x; V.ty += mid.y - V.mid.y;
+    vZoomAt(dist / (V.dist || dist), mid.x, mid.y);
+    V.dist = dist; V.mid = mid;
+  } else if (V.s > 1) {
+    V.tx += dx; V.ty += dy; vClamp(); vApply();
+  }
+});
+const vUp = e => {
+  const p = V.ptrs.get(e.pointerId); if (!p) return;
+  V.ptrs.delete(e.pointerId);
+  if (V.ptrs.size === 1) { const [a] = [...V.ptrs.values()]; V.mid = { x: a.x, y: a.y }; }
+  if (e.type !== "pointerup" || V.ptrs.size || Math.hypot(e.clientX - p.x0, e.clientY - p.y0) > 10) return;
+  const now = Date.now();
+  if (now - V.lastTap < 300) { V.s > 1 ? vZoomAt(1 / V.s, e.clientX, e.clientY) : vZoomAt(2.5, e.clientX, e.clientY); V.lastTap = 0; }
+  else V.lastTap = now;
+};
+viewer.addEventListener("pointerup", vUp);
+viewer.addEventListener("pointercancel", vUp);
 
 // ---------- Sauvegarde ----------
 function renderHomeSetting() {
@@ -802,7 +975,7 @@ $("#btn-export").onclick = async () => {
   toast("Préparation de la sauvegarde…");
   const out = [];
   for (const s of stickers) out.push({ ...s, photo: await blobToDataURL(s.photo), thumb: await blobToDataURL(s.thumb) });
-  const name = `stickers-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+  const name = `no-borders-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
   const blob = new Blob([JSON.stringify({ app: "mes-stickers", version: 1, exportedAt: new Date().toISOString(), home, stickers: out })], { type: "application/json" });
   const file = new File([blob], name, { type: "application/json" });
   if (navigator.canShare?.({ files: [file] })) {

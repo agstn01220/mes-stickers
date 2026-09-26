@@ -1,6 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0f1115"/>
-  <path d="M256 92c-72 0-130 56-130 126 0 92 130 208 130 208s130-116 130-208c0-70-58-126-130-126z" fill="#ff3d57"/>
-  <circle cx="256" cy="216" r="70" fill="#fff"/>
-  <path d="M256 162l14 30 32 4-24 22 6 32-28-16-28 16 6-32-24-22 32-4z" fill="#ffd23d"/>
+  <rect width="512" height="512" fill="#141414"/>
+  <defs>
+    <pattern id="st" width="60" height="60" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="60" height="60" fill="#111"/><rect width="30" height="60" fill="#c8102e"/>
+    </pattern>
+  </defs>
+  <g transform="rotate(-10 256 256)">
+    <path d="M62 142H450V304L386 368H62Z" fill="#000" stroke="#000" stroke-width="28" stroke-linejoin="round" transform="translate(12 14)"/>
+    <path d="M62 142H450V304L386 368H62Z" fill="url(#st)" stroke="#fff" stroke-width="22" stroke-linejoin="round"/>
+    <rect x="92" y="186" width="328" height="136" fill="#111" stroke="#fff" stroke-width="6"/>
+    <text x="256" y="258" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="58" fill="#fff" letter-spacing="1">NO BORDERS</text>
+    <text x="256" y="296" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="21" fill="#ffd23d" letter-spacing="4">STICKERS WORLDWIDE</text>
+    <path d="M450 304L386 368L386 304Z" fill="#e6e6e6" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>
+  </g>
 </svg>

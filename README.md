@@ -1,10 +1,11 @@
-# 📍 Mes Stickers
+# 🚫🧱 No Borders
 
-Petite app perso et open source pour garder la trace de tous les stickers que je colle dans le monde.
+Stickers worldwide. Petite app perso et open source pour garder la trace de tous les stickers que je colle dans le monde.
 
 - 🏠 **Page d'accueil** : compteur de stickers et de pays, ville n°1, sticker le plus éloigné de chez moi, date de mon premier sticker et 3 « stickers du jour »
 - 📷 **Je prends le sticker en photo** → la position GPS exacte est enregistrée automatiquement
-- 🗺️ **Carte du monde** en vue satellite (couleurs réelles) ou plan, avec tous mes stickers (miniatures, regroupement quand on dézoome)
+- 🌍 **Globe 3D** qu'on fait tourner, sur fond de galaxie, en vue satellite (couleurs réelles) ou plan : du globe entier jusqu'à la rue, avec tous mes stickers (miniatures, regroupement quand on dézoome)
+- 🔍 **Photos zoomables** : pincer, double-taper ou molette
 - 🖼️ **Galerie** triée par date, filtrable par pays (🇫🇷 🇰🇭 🇪🇸…)
 - 🏙️ Ville et pays trouvés automatiquement (OpenStreetMap)
 - ✏️ Position corrigeable à la main (toucher la carte, glisser le point, ou chercher un lieu)
@@ -50,7 +51,7 @@ puis ouvre http://localhost:8000.
 
 Un seul fichier `index.html` (HTML/CSS/JS sans framework ni build) :
 
-- [Leaflet](https://leafletjs.com) + [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) pour la carte
+- [MapLibre GL JS](https://maplibre.org) pour le globe 3D et les cartes
 - Fonds de carte : imagerie satellite [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) et plan [OpenStreetMap](https://www.openstreetmap.org/copyright)
 - [Nominatim](https://nominatim.org) pour retrouver ville/pays et chercher un lieu
 - IndexedDB pour stocker photos et positions sur l'appareil

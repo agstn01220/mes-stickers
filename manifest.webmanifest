@@ -1,7 +1,7 @@
 {
-  "name": "Mes Stickers",
-  "short_name": "Stickers",
-  "description": "Ma collection de stickers collés dans le monde entier",
+  "name": "No Borders",
+  "short_name": "No Borders",
+  "description": "Mes stickers collés dans le monde entier, sur un globe",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -11,6 +11,6 @@
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
   ]
 }
