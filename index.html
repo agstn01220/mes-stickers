@@ -569,19 +569,24 @@ function fitAll() {
 }
 $("#fit-btn").onclick = fitAll;
 
-// Le globe tourne tout seul quand on ne le touche pas (vue monde uniquement)
-let userBusy = false, spinTimer;
-function spin() {
-  if (!mapReady || userBusy || currentView !== "map" || map.getZoom() > 3.5) return;
-  const c = map.getCenter(); c.lng -= 6;
-  map.easeTo({ center: c, duration: 1000, easing: t => t });
-}
+// Le globe tourne tout seul quand on ne le touche pas (vue monde uniquement).
+// Le doigt est détecté en phase de capture, avant la carte : la rotation auto
+// s'arrête donc avant que le geste commence et ne peut jamais le contrarier.
+let userBusy = false, spinTimer, lastFrame = 0;
 const hold = () => { userBusy = true; clearTimeout(spinTimer); };
-const release = () => { clearTimeout(spinTimer); spinTimer = setTimeout(() => { userBusy = false; spin(); }, 5000); };
-map.on("mousedown", hold); map.on("touchstart", hold);
-map.on("mouseup", release); map.on("touchend", release);
-map.on("wheel", () => { hold(); release(); });
-map.on("moveend", spin);
+const release = () => { clearTimeout(spinTimer); spinTimer = setTimeout(() => { userBusy = false; }, 5000); };
+const mapEl = map.getContainer();
+for (const t of ["pointerdown", "touchstart", "mousedown"]) mapEl.addEventListener(t, hold, { capture: true, passive: true });
+mapEl.addEventListener("wheel", () => { hold(); release(); }, { capture: true, passive: true });
+for (const t of ["pointerup", "pointercancel", "touchend", "touchcancel", "mouseup"]) document.addEventListener(t, () => { if (userBusy) release(); }, { passive: true });
+function spinLoop(ts) {
+  requestAnimationFrame(spinLoop);
+  const dt = Math.min(100, ts - lastFrame); lastFrame = ts;
+  if (!mapReady || userBusy || currentView !== "map" || document.hidden || map.getZoom() > 3.5 || map.isMoving()) return;
+  const c = map.getCenter(); c.lng -= dt * 0.006; // ~6° par seconde
+  map.jumpTo({ center: c });
+}
+requestAnimationFrame(spinLoop);
 
 // ---------- Galerie ----------
 let countryFilter = null;
@@ -703,7 +708,7 @@ function showView(name, after) {
   document.querySelectorAll("nav .tab").forEach(t => t.classList.toggle("on", t.dataset.view === name));
   if (name === "map") setTimeout(() => {
     map.resize();
-    if (after) after(); else if (!mapFitted) fitAll(); else spin();
+    if (after) after(); else if (!mapFitted) fitAll();
     mapFitted = true;
   }, 0);
 }
