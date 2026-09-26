@@ -325,9 +325,10 @@ const fmtDateTime = iso => new Date(iso).toLocaleString("fr-FR", { day: "numeric
 const toLocalInput = d => { const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// Adresse complète : quartier / arrondissement, ville, pays
 function placeLabel(s) {
   if (!s.place) return "Lieu inconnu";
-  return [s.place.city, s.place.country].filter(Boolean).join(", ") || "Lieu inconnu";
+  return [s.place.district, s.place.city, s.place.country].filter(Boolean).join(", ") || "Lieu inconnu";
 }
 
 // ---------- Base de données locale (IndexedDB) ----------
@@ -440,23 +441,38 @@ function getPosition() {
 }
 
 // ---------- Géocodage (OpenStreetMap Nominatim) ----------
+// Préfixes qui désignent un arrondissement/quartier et non une ville (Cambodge, Japon, Viêt Nam…)
+const DISTRICT_PREFIX = /^(Khan|Sangkat|Arrondissement de|Arrondissement d'|District de|Distrito de)\s*/i;
+const CITY_ALIASES = { "Grand Londres": "Londres" };
+const PREFECTURE_CITY = { "JP-13": "Tokyo" }; // les arrondissements de Tokyo sont des « villes » dans OpenStreetMap
+function parsePlace(j) {
+  const a = j.address || {};
+  let city = a.city || a.town || a.municipality || a.village || a.county || a.state || a.province || "";
+  let district = a.suburb || a.quarter || a.neighbourhood || a.borough || (a.city_district !== city ? a.city_district : "") || "";
+  // La « ville » trouvée est en fait un arrondissement (Khan … à Phnom Penh, Arrondissement de Shibuya à Tokyo)
+  if (DISTRICT_PREFIX.test(city)) {
+    district = city;
+    city = PREFECTURE_CITY[a["ISO3166-2-lvl4"]] || a.state || a.province || a.county || "";
+  }
+  district = district.replace(DISTRICT_PREFIX, "");
+  if (city && district.toLowerCase().startsWith(city.toLowerCase() + " ")) district = district.slice(city.length + 1); // « Paris 13e Arrondissement »
+  district = district.replace(/\bArrondissement\b/, "arrondissement");
+  district = district.replace(/^arrondissement/, "Arrondissement"); // « Arrondissement Nord » (Osaka)
+  city = CITY_ALIASES[city] || city;
+  if (district.toLowerCase() === city.toLowerCase()) district = "";
+  return { district, city, country: a.country || "", cc: (a.country_code || "").toUpperCase(), label: j.display_name || "", v: 2 };
+}
 async function reverseGeocode(lat, lng) {
-  const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1&accept-language=fr,en`);
+  const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=fr,en`);
   if (!r.ok) throw new Error("geocode");
-  const j = await r.json(), a = j.address || {};
-  return {
-    city: a.city || a.town || a.village || a.municipality || a.suburb || a.county || a.state || "",
-    country: a.country || "",
-    cc: (a.country_code || "").toUpperCase(),
-    label: j.display_name || ""
-  };
+  return parsePlace(await r.json());
 }
 let filling = false;
 async function fillMissingPlaces() {
   if (filling || !navigator.onLine) return;
   filling = true;
   try {
-    for (const s of stickers.filter(s => !s.place)) {
+    for (const s of stickers.filter(s => !s.place || s.place.v !== 2)) {
       try {
         s.place = await reverseGeocode(s.lat, s.lng);
         await dbPut(s);
