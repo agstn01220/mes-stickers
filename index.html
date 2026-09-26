@@ -549,6 +549,7 @@ $("#layer-btn").onclick = () => {
 // (et non des tuiles de carte en cache) : ils sont donc toujours exacts, sur tous les appareils.
 let mapReady = false, domMarkers = {}, onScreen = {}, markersQueued = false;
 const CLUSTER_PX = 52;
+const PHOTO_ZOOM = 9; // en dessous (vue monde, pays, région), un sticker seul s'affiche comme une pastille « 1 »
 const queueMarkers = () => {
   if (markersQueued) return;
   markersQueued = true;
@@ -588,6 +589,7 @@ function updateMarkers() {
   const c = map.getCenter(), box = map.getContainer(), W = box.clientWidth, H = box.clientHeight, M = 120;
   // Très zoomé : plus de regroupement, chaque sticker a sa propre photo
   const R = map.getZoom() >= 16 ? 0 : CLUSTER_PX;
+  const photos = map.getZoom() >= PHOTO_ZOOM;
   const pts = [];
   for (const s of stickers) {
     if (distKm(c.lat, c.lng, s.lat, s.lng) > 8900) continue; // de l'autre côté du globe
@@ -602,10 +604,11 @@ function updateMarkers() {
     if (!group.length) group.push(a);
     group.forEach(b => used.add(b));
     const list = group.map(g => g.s);
-    const key = list.length === 1 ? list[0].id : "g:" + list.map(s => s.id).sort().join(",");
+    const asPhoto = list.length === 1 && photos;
+    const key = asPhoto ? list[0].id : "g:" + list.map(s => s.id).sort().join(",");
     let m = domMarkers[key];
     if (!m) {
-      m = list.length === 1
+      m = asPhoto
         ? new maplibregl.Marker({ element: pinEl(list[0]), anchor: "bottom", opacityWhenCovered: "0" }).setLngLat([list[0].lng, list[0].lat])
         : new maplibregl.Marker({ element: clusterEl(list), anchor: "center", opacityWhenCovered: "0" })
             .setLngLat([list.reduce((t, s) => t + s.lng, 0) / list.length, list.reduce((t, s) => t + s.lat, 0) / list.length]);
