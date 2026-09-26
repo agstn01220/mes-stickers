@@ -92,6 +92,13 @@
   .daily { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .daily .card { aspect-ratio: 3 / 4; }
   h3.sub { font-size: 15px; margin: 18px 0 6px; }
+  .backup-alert { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px 14px; border-radius: 14px;
+    background: rgba(227,38,63,.10); border: 1px solid rgba(227,38,63,.45); }
+  .backup-alert > .ic { width: 22px; height: 22px; color: var(--accent); }
+  .backup-alert .t { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; }
+  .backup-alert .t small { display: block; font-weight: 400; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .backup-alert .btn { padding: 8px 12px; font-size: 13px; flex: none; }
+  .hint.late { color: var(--accent-2); }
 
   /* Markers */
   .pin { width: 48px; height: 56px; cursor: pointer; }
@@ -269,6 +276,7 @@
       <button class="btn primary" id="btn-export"><span data-ic="download"></span>Exporter une sauvegarde</button>
       <button class="btn" id="btn-import"><span data-ic="upload"></span>Importer une sauvegarde</button>
     </div>
+    <p class="hint" id="backup-info"></p>
     <p class="hint" id="storage-info"></p>
   </div>
 </div>
@@ -571,8 +579,22 @@ const queueMarkers = () => {
   markersQueued = true;
   requestAnimationFrame(() => { markersQueued = false; updateMarkers(); });
 };
+// Pays où j'ai collé au moins un sticker : coloriés en rouge sur le globe
+// (contours : Natural Earth, domaine public, fichier countries.geojson)
+const visitedFilter = () => ["in", ["get", "cc"], ["literal", [...new Set(stickers.map(s => s.place?.cc).filter(Boolean))]]];
+function renderCountries() {
+  if (!mapReady || !map.getLayer("visited-fill")) return;
+  map.setFilter("visited-fill", visitedFilter());
+  map.setFilter("visited-line", visitedFilter());
+}
 map.on("load", () => {
   mapReady = true;
+  map.addSource("countries", { type: "geojson", data: "countries.geojson" });
+  map.addLayer({ id: "visited-fill", type: "fill", source: "countries", filter: visitedFilter(),
+    paint: { "fill-color": "#e3263f", "fill-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.42, 4, 0.3, 7, 0.1, 9, 0] } }, "roads");
+  map.addLayer({ id: "visited-line", type: "line", source: "countries", filter: visitedFilter(),
+    paint: { "line-color": "#ff5a6e", "line-width": ["interpolate", ["linear"], ["zoom"], 0, 0.8, 5, 1.6],
+      "line-opacity": ["interpolate", ["linear"], ["zoom"], 0, 0.9, 7, 0.5, 10, 0] } }, "roads");
   const attrib = map.getContainer().querySelector(".maplibregl-ctrl-attrib");
   attrib?.classList.remove("maplibregl-compact-show"); attrib?.removeAttribute("open");
   updateMarkers();
@@ -644,6 +666,7 @@ function renderMap() {
   for (const k in onScreen) onScreen[k].remove();
   onScreen = {}; domMarkers = {};
   updateMarkers();
+  renderCountries();
 }
 function fitBoundsOf(list, maxZoom) {
   if (list.length === 1) return map.flyTo({ center: [list[0].lng, list[0].lat], zoom: Math.min(maxZoom, 14) });
@@ -751,12 +774,15 @@ function renderHome() {
   if (home) for (const s of stickers) { const d = distKm(home.lat, home.lng, s.lat, s.lng); if (!far || d > far.d) far = { s, d }; }
   const first = stickers.reduce((a, b) => new Date(b.takenAt) < new Date(a.takenAt) ? b : a);
   const where = s => s.place ? `${flagEl(s.place.cc)}${esc(s.place.city || s.place.country)}` : "…";
+  const bk = backupStatus();
 
   el.innerHTML = `
     <div class="hero">
       <div class="big-n">${n}</div>
       <div class="l1">sticker${n > 1 ? "s" : ""} collé${n > 1 ? "s" : ""}${nc ? ` dans <b>${nc} pays</b>` : ""}</div>
     </div>
+    ${bk ? `<div class="backup-alert">${ic("alert")}<div class="t">${bk.title}<small>${bk.sub}</small></div>
+      <button class="btn primary" data-act="backup">${ic("download")}Sauvegarder</button></div>` : ""}
     <div class="stat-grid">
       <button class="stat" data-act="city">
         <div class="k">${ic("city")}Ville n°1</div>
@@ -783,6 +809,7 @@ $("#view-home").onclick = e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const act = b.dataset.act;
   if (act === "add") openSheet("#sh-choice");
+  else if (act === "backup") exportBackup();
   else if (act === "sticker") openDetail(b.dataset.id);
   else if (act === "city" && topCity) showView("map", () => fitBoundsOf(topCity.list, 16));
   else if (act === "far") far ? openDetail(far.s.id) : $("#nav-settings").click();
@@ -1055,6 +1082,7 @@ attachSearch($("#home-search"), $("#home-results"), saveHome);
 
 $("#nav-settings").onclick = async () => {
   renderHomeSetting();
+  renderBackupInfo();
   openSheet("#sh-menu");
   try {
     const est = await navigator.storage?.estimate?.();
@@ -1062,8 +1090,41 @@ $("#nav-settings").onclick = async () => {
     $("#storage-info").textContent = est ? `Espace utilisé : ${(est.usage / 1048576).toFixed(1)} Mo${persisted ? " · stockage persistant activé" : ""}` : "";
   } catch (e) {}
 };
+// Rappel de sauvegarde : on retient la date de la dernière sauvegarde réussie
+let lastBackup = null;
+const BACKUP_MAX_DAYS = 30, BACKUP_MAX_NEW = 5;
+const daysSince = iso => Math.floor((Date.now() - new Date(iso)) / 864e5);
+function ago(iso) {
+  const d = daysSince(iso);
+  if (d < 1) return "aujourd'hui";
+  if (d < 2) return "hier";
+  if (d < 60) return `il y a ${d} jours`;
+  return `il y a ${Math.floor(d / 30)} mois`;
+}
+const unsavedCount = () => lastBackup ? stickers.filter(s => new Date(s.createdAt) > new Date(lastBackup)).length : stickers.length;
+function backupStatus() {
+  if (!stickers.length) return null;
+  const n = unsavedCount();
+  if (!lastBackup) return { title: "Pense à sauvegarder tes stickers", sub: "Aucune sauvegarde pour l'instant." };
+  if (daysSince(lastBackup) >= BACKUP_MAX_DAYS) return { title: "Pense à sauvegarder tes stickers", sub: `Dernière sauvegarde ${ago(lastBackup)}${n ? ` · ${n} sticker${n > 1 ? "s" : ""} non sauvegardé${n > 1 ? "s" : ""}` : ""}.` };
+  if (n >= BACKUP_MAX_NEW) return { title: `${n} nouveaux stickers à sauvegarder`, sub: `Dernière sauvegarde ${ago(lastBackup)}.` };
+  return null;
+}
+function renderBackupInfo() {
+  const el = $("#backup-info");
+  const late = !!backupStatus();
+  el.classList.toggle("late", late);
+  el.textContent = lastBackup ? `Dernière sauvegarde : ${ago(lastBackup)} (${fmtDate(lastBackup)}).` : "Aucune sauvegarde enregistrée pour l'instant.";
+}
+async function markBackup(iso = new Date().toISOString()) {
+  lastBackup = iso;
+  try { await setSetting("lastBackup", lastBackup); } catch (e) {}
+  renderBackupInfo(); renderHome();
+}
+
 const blobToDataURL = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
-$("#btn-export").onclick = async () => {
+$("#btn-export").onclick = () => exportBackup();
+async function exportBackup() {
   if (!stickers.length) return toast("Rien à exporter pour l'instant");
   toast("Préparation de la sauvegarde…");
   const out = [];
@@ -1072,12 +1133,14 @@ $("#btn-export").onclick = async () => {
   const blob = new Blob([JSON.stringify({ app: "mes-stickers", version: 1, exportedAt: new Date().toISOString(), home, stickers: out })], { type: "application/json" });
   const file = new File([blob], name, { type: "application/json" });
   if (navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: "Sauvegarde stickers" }); return; } catch (e) { if (e.name === "AbortError") return; }
+    try { await navigator.share({ files: [file], title: "Sauvegarde stickers" }); await markBackup(); toast("Sauvegarde enregistrée"); return; }
+    catch (e) { if (e.name === "AbortError") return; }
   }
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-};
+  await markBackup();
+}
 $("#btn-import").onclick = () => $("#in-backup").click();
 $("#in-backup").onchange = async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
@@ -1091,6 +1154,8 @@ $("#in-backup").onchange = async e => {
       stickers = stickers.filter(o => o.id !== s.id); stickers.push(s); n++;
     }
     if (data.home && !home) { home = data.home; await setSetting("home", home); }
+    // Le fichier importé est lui-même une sauvegarde de ces stickers
+    if (data.exportedAt && (!lastBackup || new Date(data.exportedAt) > new Date(lastBackup))) await markBackup(data.exportedAt);
     mapFitted = false;
     renderAll(); renderHomeSetting(); closeSheet("#sh-menu");
     toast(`${n} sticker${n > 1 ? "s" : ""} importé${n > 1 ? "s" : ""}`);
@@ -1103,6 +1168,7 @@ $("#in-backup").onchange = async e => {
     db = await openDB();
     stickers = await dbAll();
     home = (await getSetting("home")) || null;
+    lastBackup = (await getSetting("lastBackup")) || null;
   } catch (e) { toast("Stockage indisponible sur ce navigateur", 5000); }
   renderAll();
   navigator.storage?.persist?.().catch(() => {});

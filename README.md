@@ -6,6 +6,8 @@ Stickers worldwide. Petite app perso et open source pour garder la trace de tous
 - 📷 **Je prends le sticker en photo** → la position GPS exacte est enregistrée automatiquement
 - 🌍 **Globe 3D** qu'on fait tourner, sur fond de galaxie, en vue satellite (couleurs réelles) ou plan : du globe entier jusqu'à la rue, avec tous mes stickers (miniatures, regroupement quand on dézoome)
 - 🔍 **Photos zoomables** : pincer, double-taper ou molette
+- 🟥 **Pays visités coloriés** en rouge sur le globe
+- 🔔 **Rappel de sauvegarde** sur l'accueil quand la dernière date de plus d'un mois ou que 5 nouveaux stickers ne sont pas sauvegardés
 - 🖼️ **Galerie** triée par date, filtrable par pays (🇫🇷 🇰🇭 🇪🇸…)
 - 🏙️ Ville et pays trouvés automatiquement (OpenStreetMap)
 - ✏️ Position corrigeable à la main (toucher la carte, glisser le point, ou chercher un lieu)
@@ -37,7 +39,7 @@ Au premier sticker, accepte l'accès à la **position** et à l'**appareil photo
 
 ## Sauvegarde
 
-Tes stickers sont stockés dans l'app, sur l'appareil. Menu **⋯ → Exporter une sauvegarde** crée un fichier `.json` (photos incluses) à ranger sur iCloud Drive / Google Drive. **Importer une sauvegarde** permet de tout restaurer ou de passer sur un nouveau téléphone. Pense à exporter de temps en temps !
+Tes stickers sont stockés dans l'app, sur l'appareil. **Réglages → Exporter une sauvegarde** crée un fichier `.json` (photos incluses) à ranger sur iCloud Drive / Google Drive. **Importer une sauvegarde** permet de tout restaurer ou de passer sur un nouveau téléphone. Pense à exporter de temps en temps !
 
 ## Tester sur l'ordinateur
 
@@ -53,7 +55,9 @@ Un seul fichier `index.html` (HTML/CSS/JS sans framework ni build) :
 
 - [MapLibre GL JS](https://maplibre.org) pour le globe 3D et les cartes
 - Fonds de carte : imagerie satellite [Esri World Imagery](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9) et plan [OpenStreetMap](https://www.openstreetmap.org/copyright)
-- [Nominatim](https://nominatim.org) pour retrouver ville/pays et chercher un lieu
+- [Nominatim](https://nominatim.org) pour retrouver quartier/ville/pays et chercher un lieu
+- Contours des pays : [Natural Earth](https://www.naturalearthdata.com) (domaine public), simplifiés dans `countries.geojson`
+- Drapeaux : [flag-icons](https://github.com/lipis/flag-icons) (MIT)
 - IndexedDB pour stocker photos et positions sur l'appareil
 - Service worker (`sw.js`) + manifest pour l'installation et le hors-ligne
 
