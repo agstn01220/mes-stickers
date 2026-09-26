@@ -558,11 +558,13 @@ map.on("load", () => {
   attrib?.classList.remove("maplibregl-compact-show"); attrib?.removeAttribute("open");
   map.on("render", () => { if (map.isSourceLoaded("stickers")) updateMarkers(); });
 });
+// Un marqueur de l'autre côté du globe est invisible (opacité 0) : il ne doit pas capter le doigt
+const covered = el => el.style.opacity === "0";
 function pinEl(s) {
   const el = document.createElement("div");
   el.className = "pin";
   el.innerHTML = `<img src="${blobUrl(s, "thumb")}" alt="">`;
-  el.addEventListener("click", e => { e.stopPropagation(); openDetail(s.id); });
+  el.addEventListener("click", e => { e.stopPropagation(); if (!covered(el)) openDetail(s.id); });
   return el;
 }
 function clusterEl(p, lngLat) {
@@ -570,7 +572,14 @@ function clusterEl(p, lngLat) {
   el.className = "cl"; el.textContent = p.point_count;
   el.addEventListener("click", async e => {
     e.stopPropagation();
-    try { const z = await map.getSource("stickers").getClusterExpansionZoom(p.cluster_id); map.easeTo({ center: lngLat, zoom: z + 0.5 }); } catch (err) {}
+    if (covered(el)) return;
+    // On cadre exactement les stickers du groupe (plus fiable que le centre du groupe)
+    try {
+      const leaves = await map.getSource("stickers").getClusterLeaves(p.cluster_id, 1000, 0);
+      const list = leaves.map(f => stickers.find(s => s.id === f.properties.id)).filter(Boolean);
+      if (list.length) return fitBoundsOf(list, 17);
+    } catch (err) {}
+    map.easeTo({ center: lngLat, zoom: map.getZoom() + 3 });
   });
   return el;
 }
@@ -591,6 +600,7 @@ function updateMarkers() {
   }
   for (const k in onScreen) if (!next[k]) onScreen[k].remove();
   onScreen = next;
+  for (const k in onScreen) { const el = onScreen[k].getElement(); el.style.pointerEvents = covered(el) ? "none" : ""; }
 }
 function renderMap() {
   $("#empty-map").hidden = stickers.length > 0;
