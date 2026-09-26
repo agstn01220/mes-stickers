@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stickers">
+<title>Mes Stickers</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel-2: #222631;
+    --line: #2d3240;
+    --text: #f3f4f6;
+    --muted: #9aa3b2;
+    --accent: #ff3d57;
+    --accent-2: #ffd23d;
+    --ok: #3ddc84;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-t: env(safe-area-inset-top, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  header { display: flex; align-items: center; gap: 12px; padding: calc(10px + var(--safe-t)) 16px 10px;
+    background: var(--bg); border-bottom: 1px solid var(--line); z-index: 5; }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: .3px; }
+  header h1 span { color: var(--accent); }
+  #stats { color: var(--muted); font-size: 13px; margin-left: auto; white-space: nowrap; }
+  .icon-btn { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; width: 36px; height: 36px;
+    display: grid; place-items: center; font-size: 17px; }
+
+  main { flex: 1; position: relative; overflow: hidden; }
+  .view { position: absolute; inset: 0; display: none; }
+  .view.active { display: block; }
+  #map { position: absolute; inset: 0; background: #aad3df; }
+  #fit-btn { position: absolute; right: 12px; top: 12px; z-index: 500; }
+  #empty-map { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 500;
+    background: rgba(15,17,21,.9); padding: 10px 14px; border-radius: 12px; font-size: 14px; text-align: center; width: max-content; max-width: calc(100% - 32px); }
+
+  #view-gallery { overflow-y: auto; padding: 12px 16px 24px; }
+  #chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+  #chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: 14px; }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 8px; }
+  .card { position: relative; border: 0; padding: 0; background: var(--panel); border-radius: 12px; overflow: hidden; aspect-ratio: 1; }
+  .card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 8px 6px; font-size: 12px; text-align: left;
+    background: linear-gradient(transparent, rgba(0,0,0,.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty { color: var(--muted); text-align: center; padding: 48px 16px; }
+
+  nav { display: flex; align-items: center; justify-content: space-around; background: var(--panel);
+    border-top: 1px solid var(--line); padding: 6px 16px calc(6px + var(--safe-b)); z-index: 5; }
+  nav .tab { background: none; border: 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; padding: 6px 18px; }
+  nav .tab b { font-size: 22px; font-weight: normal; line-height: 1; }
+  nav .tab.on { color: var(--text); }
+  #fab { width: 62px; height: 62px; border-radius: 50%; border: 4px solid var(--bg); background: var(--accent); color: #fff;
+    font-size: 28px; margin-top: -30px; box-shadow: 0 6px 20px rgba(255,61,87,.4); }
+
+  /* Markers */
+  .pin { width: 48px; height: 56px; position: relative; }
+  .pin img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); background: #ddd; display: block; }
+  .pin::after { content: ""; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+    border: 7px solid transparent; border-top: 9px solid #fff; border-bottom: 0; }
+  .cl { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700;
+    display: grid; place-items: center; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+  .dot { width: 22px; height: 22px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.5); }
+
+  /* Sheets */
+  .sheet-wrap { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1000; display: none; align-items: flex-end; justify-content: center; }
+  .sheet-wrap.open { display: flex; }
+  .sheet { background: var(--panel); width: 100%; max-width: 560px; max-height: 94dvh; overflow-y: auto; border-radius: 18px 18px 0 0;
+    padding: 14px 16px calc(18px + var(--safe-b)); animation: up .22s ease-out; }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } }
+  .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .sheet-head h2 { font-size: 17px; margin: 0; }
+  .preview { width: 100%; max-height: 42dvh; object-fit: contain; background: #000; border-radius: 12px; display: block; }
+  .status { margin: 10px 0 8px; font-size: 14px; color: var(--muted); }
+  .status.ok { color: var(--ok); }
+  .status.warn { color: var(--accent-2); }
+  .minimap { height: 220px; border-radius: 12px; overflow: hidden; }
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .row > * { flex: 1; }
+  label.f { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  input[type=text], input[type=search], input[type=datetime-local], textarea {
+    width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 16px; }
+  textarea { resize: vertical; min-height: 60px; }
+  .btn { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-weight: 600; text-align: center; text-decoration: none; color: var(--text); display: block; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.danger { color: #ff7a8c; }
+  .btn:disabled { opacity: .45; }
+  .choice { display: grid; gap: 10px; }
+  .choice .btn { padding: 16px; font-size: 16px; }
+  .big { width: 100%; max-height: 55dvh; object-fit: contain; background: #000; border-radius: 12px; display: block; }
+  .meta h3 { margin: 12px 0 2px; font-size: 18px; }
+  .meta p { margin: 2px 0; color: var(--muted); font-size: 14px; }
+  .search-results { background: var(--panel-2); border-radius: 10px; margin-top: 4px; overflow: hidden; }
+  .search-results button { display: block; width: 100%; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 10px 12px; font-size: 14px; }
+  .hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  #toast { position: fixed; left: 50%; top: calc(16px + var(--safe-t)); transform: translateX(-50%); z-index: 2000; background: var(--text); color: var(--bg);
+    padding: 10px 16px; border-radius: 12px; font-weight: 600; font-size: 14px; display: none; max-width: calc(100% - 32px); }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .leaflet-container { font: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Mes <span>Stickers</span></h1>
+  <div id="stats"></div>
+  <button class="icon-btn" id="menu-btn" aria-label="Menu">⋯</button>
+</header>
+
+<main>
+  <section class="view active" id="view-map">
+    <div id="map"></div>
+    <button class="icon-btn" id="fit-btn" aria-label="Voir tous mes stickers">⤢</button>
+    <div id="empty-map" hidden>Aucun sticker pour l'instant. Appuie sur <b>＋</b> pour ajouter le premier !</div>
+  </section>
+  <section class="view" id="view-gallery">
+    <div id="chips"></div>
+    <div id="grid"></div>
+  </section>
+</main>
+
+<nav>
+  <button class="tab on" data-view="map"><b>🗺️</b>Carte</button>
+  <button id="fab" aria-label="Ajouter un sticker">＋</button>
+  <button class="tab" data-view="gallery"><b>🖼️</b>Galerie</button>
+</nav>
+
+<input type="file" id="in-camera" accept="image/*" capture="environment" hidden>
+<input type="file" id="in-library" accept="image/*" hidden>
+<input type="file" id="in-backup" accept="application/json,.json" hidden>
+
+<!-- Choix source -->
+<div class="sheet-wrap" id="sh-choice">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Nouveau sticker</h2><button class="icon-btn" data-close>✕</button></div>
+    <div class="choice">
+      <button class="btn primary" id="btn-camera">📷 Prendre une photo</button>
+      <button class="btn" id="btn-library">🖼️ Choisir dans mes photos</button>
+    </div>
+    <p class="hint">Avec « Prendre une photo », ta position GPS actuelle est enregistrée automatiquement. Depuis tes photos, la position est lue dans la photo si elle y est.</p>
+  </div>
+</div>
+
+<!-- Ajout -->
+<div class="sheet-wrap" id="sh-add">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Ajouter le sticker</h2><button class="icon-btn" data-close>✕</button></div>
+    <img class="preview" id="add-preview" alt="">
+    <div class="status" id="add-status"></div>
+    <div class="minimap" id="add-map"></div>
+    <p class="hint">Touche la carte ou déplace le point pour corriger l'emplacement.</p>
+    <div class="row">
+      <button class="btn" id="add-locate">📍 Ma position</button>
+    </div>
+    <input type="search" id="add-search" placeholder="…ou chercher un lieu (ville, rue)" style="margin-top:8px">
+    <div class="search-results" id="add-results"></div>
+    <label class="f" for="add-date">Date</label>
+    <input type="datetime-local" id="add-date">
+    <label class="f" for="add-note">Note (optionnel)</label>
+    <textarea id="add-note" placeholder="Ex : poteau devant le stade, avec les potes…"></textarea>
+    <div class="row" style="margin-top:14px">
+      <button class="btn primary" id="add-save" disabled>Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Détail -->
+<div class="sheet-wrap" id="sh-detail">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="d-title">Sticker</h2><button class="icon-btn" data-close>✕</button></div>
+    <img class="big" id="d-img" alt="">
+    <div class="meta">
+      <h3 id="d-place"></h3>
+      <p id="d-date"></p>
+      <p id="d-coords"></p>
+    </div>
+    <label class="f" for="d-note">Note</label>
+    <textarea id="d-note"></textarea>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="d-onmap">🗺️ Sur la carte</button>
+      <a class="btn" id="d-maps" target="_blank" rel="noopener">🧭 Itinéraire</a>
+    </div>
+    <div class="row">
+      <button class="btn danger" id="d-delete">🗑️ Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Menu -->
+<div class="sheet-wrap" id="sh-menu">
+  <div class="sheet">
+    <div class="sheet-head"><h2>Sauvegarde</h2><button class="icon-btn" data-close>✕</button></div>
+    <p class="hint" style="margin-top:0">Tes stickers sont stockés uniquement sur cet appareil, dans l'app. Exporte une sauvegarde de temps en temps (sur iCloud Drive, Google Drive…) pour ne jamais les perdre, ou pour les transférer sur un autre téléphone.</p>
+    <div class="choice" style="margin-top:12px">
+      <button class="btn primary" id="btn-export">⬇️ Exporter une sauvegarde</button>
+      <button class="btn" id="btn-import">⬆️ Importer une sauvegarde</button>
+    </div>
+    <p class="hint" id="storage-info"></p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+
+// ---------- Utilitaires ----------
+function toast(msg, ms = 2600) {
+  const t = $("#toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = "none", ms);
+}
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const flag = cc => cc && cc.length === 2 ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt(0))) : "🏳️";
+const fmtDate = iso => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+const fmtDateTime = iso => new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const toLocalInput = d => { const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function placeLabel(s) {
+  if (!s.place) return "Lieu inconnu";
+  return [s.place.city, s.place.country].filter(Boolean).join(", ") || "Lieu inconnu";
+}
+
+// ---------- Base de données locale (IndexedDB) ----------
+const STORE = "stickers";
+let db;
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open("mes-stickers", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(STORE, { keyPath: "id" });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function tx(mode, fn) {
+  return new Promise((res, rej) => {
+    const t = db.transaction(STORE, mode);
+    const req = fn(t.objectStore(STORE));
+    t.oncomplete = () => res(req && req.result);
+    t.onerror = () => rej(t.error);
+  });
+}
+const dbAll = () => tx("readonly", s => s.getAll());
+const dbPut = o => tx("readwrite", s => s.put(o));
+const dbDel = id => tx("readwrite", s => s.delete(id));
+
+// ---------- Lecture GPS / date dans l'EXIF d'une photo JPEG ----------
+async function readExif(file) {
+  try {
+    const v = new DataView(await file.slice(0, 512 * 1024).arrayBuffer());
+    if (v.getUint16(0) !== 0xFFD8) return null;
+    let off = 2;
+    while (off < v.byteLength - 4) {
+      const marker = v.getUint16(off), size = v.getUint16(off + 2);
+      if (marker === 0xFFE1 && v.getUint32(off + 4) === 0x45786966) return parseTiff(v, off + 10);
+      if ((marker & 0xFF00) !== 0xFF00) break;
+      off += 2 + size;
+    }
+  } catch (e) { /* photo sans EXIF lisible */ }
+  return null;
+}
+function parseTiff(v, start) {
+  const le = v.getUint16(start) === 0x4949;
+  const u16 = o => v.getUint16(start + o, le), u32 = o => v.getUint32(start + o, le);
+  const ifd = o => { const n = u16(o), t = {}; for (let i = 0; i < n; i++) { const e = o + 2 + i * 12; t[u16(e)] = { count: u32(e + 4), e: e + 8 }; } return t; };
+  const ascii = tag => { let o = tag.count > 4 ? u32(tag.e) : tag.e, s = ""; for (let i = 0; i < tag.count - 1; i++) s += String.fromCharCode(v.getUint8(start + o + i)); return s; };
+  const dms = tag => { const o = u32(tag.e); const r = k => u32(o + k * 8) / u32(o + k * 8 + 4); return r(0) + r(1) / 60 + r(2) / 3600; };
+  const out = {};
+  const t0 = ifd(u32(4));
+  if (t0[0x8769]) {
+    const ex = ifd(u32(t0[0x8769].e));
+    const dt = ex[0x9003] || ex[0x9004];
+    if (dt) { const m = ascii(dt).match(/(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/); if (m) out.date = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]); }
+  }
+  if (t0[0x8825]) {
+    const g = ifd(u32(t0[0x8825].e));
+    if (g[2] && g[4]) {
+      let lat = dms(g[2]), lng = dms(g[4]);
+      if (g[1] && String.fromCharCode(v.getUint8(start + g[1].e)) === "S") lat = -lat;
+      if (g[3] && String.fromCharCode(v.getUint8(start + g[3].e)) === "W") lng = -lng;
+      if (isFinite(lat) && isFinite(lng) && !(lat === 0 && lng === 0)) { out.lat = lat; out.lng = lng; }
+    }
+  }
+  return out;
+}
+
+// ---------- Images ----------
+function loadImage(blob) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(blob), i = new Image();
+    i.onload = () => { res(i); URL.revokeObjectURL(u); };
+    i.onerror = () => { rej(new Error("Image illisible")); URL.revokeObjectURL(u); };
+    i.src = u;
+  });
+}
+function toJpeg(img, max, quality, square) {
+  const w = img.naturalWidth, h = img.naturalHeight;
+  const c = document.createElement("canvas"), ctx = c.getContext("2d");
+  if (square) {
+    const side = Math.min(w, h); c.width = c.height = Math.min(max, side);
+    ctx.drawImage(img, (w - side) / 2, (h - side) / 2, side, side, 0, 0, c.width, c.height);
+  } else {
+    const r = Math.min(1, max / Math.max(w, h)); c.width = Math.round(w * r); c.height = Math.round(h * r);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+  }
+  return new Promise(res => c.toBlob(res, "image/jpeg", quality));
+}
+
+// ---------- Géolocalisation ----------
+function getPosition() {
+  return new Promise((res, rej) => {
+    if (!navigator.geolocation) return rej(new Error("La géolocalisation n'est pas disponible."));
+    let best = null, w, t;
+    const finish = () => { navigator.geolocation.clearWatch(w); clearTimeout(t); best ? res(best) : rej(new Error("Position introuvable.")); };
+    w = navigator.geolocation.watchPosition(p => {
+      if (!best || p.coords.accuracy < best.coords.accuracy) best = p;
+      if (p.coords.accuracy <= 15) finish();
+    }, e => {
+      if (best) return;
+      navigator.geolocation.clearWatch(w); clearTimeout(t);
+      rej(new Error(e.code === 1 ? "Localisation refusée : autorise-la dans les réglages." : "Position introuvable."));
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+    t = setTimeout(finish, 12000);
+  });
+}
+
+// ---------- Géocodage (OpenStreetMap Nominatim) ----------
+async function reverseGeocode(lat, lng) {
+  const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1&accept-language=fr,en`);
+  if (!r.ok) throw new Error("geocode");
+  const j = await r.json(), a = j.address || {};
+  return {
+    city: a.city || a.town || a.village || a.municipality || a.suburb || a.county || a.state || "",
+    country: a.country || "",
+    cc: (a.country_code || "").toUpperCase(),
+    label: j.display_name || ""
+  };
+}
+let filling = false;
+async function fillMissingPlaces() {
+  if (filling || !navigator.onLine) return;
+  filling = true;
+  try {
+    for (const s of stickers.filter(s => !s.place)) {
+      try {
+        s.place = await reverseGeocode(s.lat, s.lng);
+        await dbPut(s);
+        renderAll();
+      } catch (e) { break; }
+      await sleep(1100); // limite d'usage de Nominatim : 1 requête / seconde
+    }
+  } finally { filling = false; }
+}
+
+// ---------- État ----------
+let stickers = [];
+const urlCache = new Map();
+function blobUrl(s, key) {
+  const k = s.id + key;
+  if (!urlCache.has(k)) urlCache.set(k, URL.createObjectURL(s[key]));
+  return urlCache.get(k);
+}
+function forgetUrls(id) {
+  for (const key of ["photo", "thumb"]) { const k = id + key; if (urlCache.has(k)) { URL.revokeObjectURL(urlCache.get(k)); urlCache.delete(k); } }
+}
+
+// ---------- Carte principale ----------
+const TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_OPTS = { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 };
+const map = L.map("map", { zoomControl: false, worldCopyJump: true }).setView([25, 10], 2);
+L.tileLayer(TILES, TILE_OPTS).addTo(map);
+const cluster = L.markerClusterGroup({
+  showCoverageOnHover: false, maxClusterRadius: 50,
+  iconCreateFunction: c => L.divIcon({ html: `<div class="cl">${c.getChildCount()}</div>`, className: "", iconSize: [44, 44] })
+});
+map.addLayer(cluster);
+const markers = new Map();
+
+function renderMap() {
+  cluster.clearLayers(); markers.clear();
+  for (const s of stickers) {
+    const m = L.marker([s.lat, s.lng], {
+      icon: L.divIcon({ className: "", html: `<div class="pin"><img src="${blobUrl(s, "thumb")}" alt=""></div>`, iconSize: [48, 56], iconAnchor: [24, 56] })
+    });
+    m.on("click", () => openDetail(s.id));
+    markers.set(s.id, m);
+    cluster.addLayer(m);
+  }
+  $("#empty-map").hidden = stickers.length > 0;
+}
+function fitAll() {
+  if (!stickers.length) return map.setView([25, 10], 2);
+  map.fitBounds(L.latLngBounds(stickers.map(s => [s.lat, s.lng])), { padding: [50, 50], maxZoom: 15 });
+}
+$("#fit-btn").onclick = fitAll;
+
+// ---------- Galerie ----------
+let countryFilter = null;
+function renderGallery() {
+  const byCountry = {};
+  for (const s of stickers) {
+    const k = s.place?.cc || "?";
+    byCountry[k] ??= { cc: k, name: s.place?.country || "Inconnu", n: 0 };
+    byCountry[k].n++;
+  }
+  const countries = Object.values(byCountry).sort((a, b) => b.n - a.n);
+  if (countryFilter && !byCountry[countryFilter]) countryFilter = null;
+  $("#chips").innerHTML =
+    `<button class="chip ${countryFilter ? "" : "on"}" data-cc="">Tous (${stickers.length})</button>` +
+    countries.map(c => `<button class="chip ${countryFilter === c.cc ? "on" : ""}" data-cc="${esc(c.cc)}">${c.cc === "?" ? "❓" : flag(c.cc)} ${esc(c.name)} (${c.n})</button>`).join("");
+  const list = stickers
+    .filter(s => !countryFilter || (s.place?.cc || "?") === countryFilter)
+    .sort((a, b) => new Date(b.takenAt) - new Date(a.takenAt));
+  $("#grid").innerHTML = list.length ? list.map(s =>
+    `<button class="card" data-id="${s.id}"><img src="${blobUrl(s, "thumb")}" alt="" loading="lazy"><span class="cap">${s.place ? flag(s.place.cc) + " " + esc(s.place.city || s.place.country) : "📍 …"}</span></button>`
+  ).join("") : "";
+  if (!stickers.length) $("#grid").innerHTML = `<div class="empty" style="grid-column:1/-1">Ta galerie est vide.<br>Colle un sticker, prends-le en photo avec ＋ 📷</div>`;
+}
+$("#chips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; countryFilter = b.dataset.cc || null; renderGallery(); };
+$("#grid").onclick = e => { const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id); };
+
+function renderStats() {
+  const n = stickers.length, c = new Set(stickers.map(s => s.place?.cc).filter(Boolean)).size;
+  $("#stats").textContent = `${n} sticker${n > 1 ? "s" : ""} · ${c} pays`;
+}
+function renderAll() { renderMap(); renderGallery(); renderStats(); }
+
+// ---------- Onglets ----------
+function showView(name) {
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
+  document.querySelectorAll("nav .tab").forEach(t => t.classList.toggle("on", t.dataset.view === name));
+  if (name === "map") setTimeout(() => map.invalidateSize(), 0);
+}
+document.querySelectorAll("nav .tab").forEach(t => t.onclick = () => showView(t.dataset.view));
+
+// ---------- Feuilles (modales) ----------
+const openSheet = id => $(id).classList.add("open");
+const closeSheet = id => $(id).classList.remove("open");
+document.querySelectorAll(".sheet-wrap").forEach(w => {
+  w.addEventListener("click", e => { if (e.target === w || e.target.closest("[data-close]")) w.classList.remove("open"); });
+});
+
+// ---------- Ajout d'un sticker ----------
+let draft = null, warmPos = null, addMap = null, addMarker = null;
+
+$("#fab").onclick = () => openSheet("#sh-choice");
+$("#btn-camera").onclick = () => {
+  $("#in-camera").click();
+  warmPos = getPosition(); // on lance le GPS pendant que tu cadres la photo
+  warmPos.catch(() => {});
+  closeSheet("#sh-choice");
+};
+$("#btn-library").onclick = () => { $("#in-library").click(); closeSheet("#sh-choice"); };
+$("#in-camera").onchange = e => { const f = e.target.files[0]; e.target.value = ""; if (f) startAdd(f, true); };
+$("#in-library").onchange = e => { const f = e.target.files[0]; e.target.value = ""; if (f) startAdd(f, false); };
+
+function setStatus(html, cls = "") { const s = $("#add-status"); s.className = "status " + cls; s.innerHTML = html; }
+
+function ensureAddMap() {
+  if (addMap) return;
+  addMap = L.map("add-map", { zoomControl: false, attributionControl: false }).setView([25, 10], 2);
+  L.tileLayer(TILES, TILE_OPTS).addTo(addMap);
+  addMap.on("click", e => setDraftPos(e.latlng.lat, e.latlng.lng, "manual"));
+}
+function setDraftPos(lat, lng, source, accuracy = null) {
+  if (!draft) return;
+  Object.assign(draft, { lat, lng, source, accuracy });
+  if (!addMarker) {
+    addMarker = L.marker([lat, lng], { draggable: true, icon: L.divIcon({ className: "", html: '<div class="dot"></div>', iconSize: [22, 22], iconAnchor: [11, 11] }) }).addTo(addMap);
+    addMarker.on("dragend", () => { const p = addMarker.getLatLng(); setDraftPos(p.lat, p.lng, "manual"); });
+  } else addMarker.setLatLng([lat, lng]);
+  if (source !== "manual") addMap.setView([lat, lng], 17);
+  const msg = {
+    photo: "✅ Position lue dans la photo",
+    gps: `✅ Position GPS enregistrée${accuracy ? ` (précision ±${Math.round(accuracy)} m)` : ""}`,
+    manual: "✅ Position placée à la main",
+    search: "✅ Position choisie par recherche"
+  }[source];
+  setStatus(msg, "ok");
+  $("#add-save").disabled = false;
+}
+
+async function locateDraft(promise) {
+  setStatus('<span class="spinner"></span> Localisation en cours…');
+  try {
+    let p;
+    try { p = await (promise || getPosition()); }
+    catch (e) { if (!promise) throw e; p = await getPosition(); }
+    if (draft) setDraftPos(p.coords.latitude, p.coords.longitude, "gps", p.coords.accuracy);
+  } catch (e) {
+    if (draft && draft.lat == null) setStatus(`⚠️ ${esc(e.message)} Touche la carte pour placer le sticker.`, "warn");
+  }
+}
+
+async function startAdd(file, fromCamera) {
+  draft = { id: uid() };
+  if (addMarker) { addMarker.remove(); addMarker = null; }
+  $("#add-save").disabled = true;
+  $("#add-note").value = ""; $("#add-search").value = ""; $("#add-results").innerHTML = "";
+  $("#add-preview").removeAttribute("src");
+  setStatus('<span class="spinner"></span> Préparation de la photo…');
+  openSheet("#sh-add");
+  ensureAddMap();
+  setTimeout(() => addMap.invalidateSize(), 50);
+
+  const exif = await readExif(file);
+  const pos = fromCamera ? warmPos : null;
+  warmPos = null;
+  $("#add-date").value = toLocalInput(exif?.date || new Date());
+
+  if (exif?.lat != null) setDraftPos(exif.lat, exif.lng, "photo");
+  else if (fromCamera) locateDraft(pos);
+  else setStatus("⚠️ Pas de position GPS dans cette photo. Touche la carte, cherche le lieu, ou utilise « Ma position ».", "warn");
+
+  try {
+    const img = await loadImage(file);
+    const [photo, thumb] = await Promise.all([toJpeg(img, 1600, 0.85), toJpeg(img, 320, 0.8, true)]);
+    if (!draft) return;
+    draft.photo = photo; draft.thumb = thumb;
+    $("#add-preview").src = URL.createObjectURL(photo);
+  } catch (e) {
+    closeSheet("#sh-add"); draft = null;
+    toast("Impossible de lire cette image 😕");
+  }
+}
+
+$("#add-locate").onclick = () => locateDraft(null);
+
+let searchT;
+$("#add-search").oninput = e => {
+  clearTimeout(searchT);
+  const q = e.target.value.trim();
+  if (q.length < 3) { $("#add-results").innerHTML = ""; return; }
+  searchT = setTimeout(async () => {
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=fr,en&q=${encodeURIComponent(q)}`);
+      const list = await r.json();
+      $("#add-results").innerHTML = list.map(x => `<button data-lat="${x.lat}" data-lng="${x.lon}">${esc(x.display_name)}</button>`).join("") ||
+        '<button disabled>Aucun résultat</button>';
+    } catch (err) { $("#add-results").innerHTML = '<button disabled>Recherche indisponible (hors ligne ?)</button>'; }
+  }, 450);
+};
+$("#add-results").onclick = e => {
+  const b = e.target.closest("button[data-lat]"); if (!b) return;
+  setDraftPos(+b.dataset.lat, +b.dataset.lng, "search");
+  $("#add-results").innerHTML = ""; $("#add-search").value = "";
+};
+
+$("#add-save").onclick = async () => {
+  if (!draft || draft.lat == null) return;
+  if (!draft.photo) { toast("La photo est encore en préparation…"); return; }
+  const s = {
+    id: draft.id, lat: draft.lat, lng: draft.lng, accuracy: draft.accuracy, source: draft.source,
+    takenAt: new Date($("#add-date").value || Date.now()).toISOString(),
+    createdAt: new Date().toISOString(),
+    note: $("#add-note").value.trim(),
+    photo: draft.photo, thumb: draft.thumb, place: null
+  };
+  try {
+    await dbPut(s);
+  } catch (e) { toast("Erreur d'enregistrement : " + e.message); return; }
+  stickers.push(s);
+  draft = null;
+  closeSheet("#sh-add");
+  renderAll();
+  showView("map");
+  map.setView([s.lat, s.lng], 16);
+  toast("Sticker ajouté 🔥");
+  fillMissingPlaces();
+};
+
+// ---------- Détail ----------
+let current = null;
+function openDetail(id) {
+  const s = stickers.find(x => x.id === id); if (!s) return;
+  current = s;
+  $("#d-img").src = blobUrl(s, "photo");
+  $("#d-title").textContent = s.place ? flag(s.place.cc) + " " + (s.place.country || "Sticker") : "Sticker";
+  $("#d-place").textContent = placeLabel(s);
+  $("#d-date").textContent = "🗓️ " + fmtDateTime(s.takenAt);
+  $("#d-coords").textContent = `📍 ${s.lat.toFixed(6)}, ${s.lng.toFixed(6)}${s.accuracy ? ` (±${Math.round(s.accuracy)} m)` : ""}`;
+  $("#d-note").value = s.note || "";
+  $("#d-maps").href = `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
+  openSheet("#sh-detail");
+}
+$("#d-note").onchange = async () => { if (!current) return; current.note = $("#d-note").value.trim(); await dbPut(current); };
+$("#d-onmap").onclick = () => {
+  if (!current) return;
+  closeSheet("#sh-detail"); showView("map");
+  const m = markers.get(current.id);
+  setTimeout(() => m ? cluster.zoomToShowLayer(m, () => map.setView(m.getLatLng(), Math.max(map.getZoom(), 17))) : map.setView([current.lat, current.lng], 17), 50);
+};
+$("#d-delete").onclick = async () => {
+  if (!current || !confirm("Supprimer ce sticker de ta collection ?")) return;
+  await dbDel(current.id);
+  forgetUrls(current.id);
+  stickers = stickers.filter(s => s.id !== current.id);
+  current = null;
+  closeSheet("#sh-detail"); renderAll();
+  toast("Sticker supprimé");
+};
+
+// ---------- Sauvegarde ----------
+$("#menu-btn").onclick = async () => {
+  openSheet("#sh-menu");
+  try {
+    const est = await navigator.storage?.estimate?.();
+    const persisted = await navigator.storage?.persisted?.();
+    $("#storage-info").textContent = est ? `Espace utilisé : ${(est.usage / 1048576).toFixed(1)} Mo${persisted ? " · stockage persistant ✅" : ""}` : "";
+  } catch (e) {}
+};
+const blobToDataURL = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+$("#btn-export").onclick = async () => {
+  if (!stickers.length) return toast("Rien à exporter pour l'instant");
+  toast("Préparation de la sauvegarde…");
+  const out = [];
+  for (const s of stickers) out.push({ ...s, photo: await blobToDataURL(s.photo), thumb: await blobToDataURL(s.thumb) });
+  const name = `stickers-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+  const blob = new Blob([JSON.stringify({ app: "mes-stickers", version: 1, exportedAt: new Date().toISOString(), stickers: out })], { type: "application/json" });
+  const file = new File([blob], name, { type: "application/json" });
+  if (navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: "Sauvegarde stickers" }); return; } catch (e) { if (e.name === "AbortError") return; }
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+};
+$("#btn-import").onclick = () => $("#in-backup").click();
+$("#in-backup").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (data.app !== "mes-stickers" || !Array.isArray(data.stickers)) throw new Error("Ce fichier n'est pas une sauvegarde de Mes Stickers.");
+    let n = 0;
+    for (const x of data.stickers) {
+      const s = { ...x, photo: await (await fetch(x.photo)).blob(), thumb: await (await fetch(x.thumb)).blob() };
+      await dbPut(s); forgetUrls(s.id);
+      stickers = stickers.filter(o => o.id !== s.id); stickers.push(s); n++;
+    }
+    renderAll(); fitAll(); closeSheet("#sh-menu");
+    toast(`${n} sticker${n > 1 ? "s" : ""} importé${n > 1 ? "s" : ""} ✅`);
+  } catch (err) { toast("Import impossible : " + err.message, 4000); }
+};
+
+// ---------- Démarrage ----------
+(async () => {
+  try {
+    db = await openDB();
+    stickers = await dbAll();
+  } catch (e) { toast("Stockage indisponible sur ce navigateur 😕", 5000); }
+  renderAll();
+  fitAll();
+  navigator.storage?.persist?.().catch(() => {});
+  fillMissingPlaces();
+  window.addEventListener("online", fillMissingPlaces);
+  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
+})();
+</script>
+</body>
+</html>
