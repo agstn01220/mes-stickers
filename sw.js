@@ -1,5 +1,5 @@
 // Service worker : garde l'app disponible hors ligne (les photos, elles, sont dans IndexedDB).
-const CACHE = "mes-stickers-v1";
+const CACHE = "mes-stickers-v2";
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png",
   "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",

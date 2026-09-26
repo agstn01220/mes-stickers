@@ -45,8 +45,10 @@
   main { flex: 1; position: relative; overflow: hidden; }
   .view { position: absolute; inset: 0; display: none; }
   .view.active { display: block; }
-  #map { position: absolute; inset: 0; background: #aad3df; }
+  #map { position: absolute; inset: 0; background: #0b1d33; }
   #fit-btn { position: absolute; right: 12px; top: 12px; z-index: 500; }
+  #layer-btn { position: absolute; left: 12px; top: 12px; z-index: 500; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 10px; height: 36px; padding: 0 12px; font-size: 14px; font-weight: 600; }
   #empty-map { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 500;
     background: rgba(15,17,21,.9); padding: 10px 14px; border-radius: 12px; font-size: 14px; text-align: center; width: max-content; max-width: calc(100% - 32px); }
 
@@ -63,12 +65,31 @@
   .empty { color: var(--muted); text-align: center; padding: 48px 16px; }
 
   nav { display: flex; align-items: center; justify-content: space-around; background: var(--panel);
-    border-top: 1px solid var(--line); padding: 6px 16px calc(6px + var(--safe-b)); z-index: 5; }
-  nav .tab { background: none; border: 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; padding: 6px 18px; }
+    border-top: 1px solid var(--line); padding: 6px 8px calc(6px + var(--safe-b)); z-index: 5; }
+  nav .tab { background: none; border: 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; padding: 6px 2px; min-width: 62px; }
   nav .tab b { font-size: 22px; font-weight: normal; line-height: 1; }
   nav .tab.on { color: var(--text); }
   #fab { width: 62px; height: 62px; border-radius: 50%; border: 4px solid var(--bg); background: var(--accent); color: #fff;
     font-size: 28px; margin-top: -30px; box-shadow: 0 6px 20px rgba(255,61,87,.4); }
+
+  /* Accueil */
+  #view-home { overflow-y: auto; padding: 8px 16px 28px; }
+  .hero { text-align: center; padding: 22px 0 24px; }
+  .hero .big-n { font-size: 84px; font-weight: 900; line-height: 1; letter-spacing: -3px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero .l1 { font-size: 19px; font-weight: 700; margin-top: 8px; }
+  .hero .l1 b { color: var(--accent); }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; text-align: left; color: var(--text); min-width: 0; }
+  .stat.wide { grid-column: 1 / -1; }
+  .stat .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+  .stat .v { font-size: 18px; font-weight: 800; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat .s { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .section-title { display: flex; justify-content: space-between; align-items: baseline; font-size: 16px; font-weight: 800; margin: 26px 0 10px; }
+  .section-title span { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .daily { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .daily .card { aspect-ratio: 3 / 4; }
+  h3.sub { font-size: 15px; margin: 18px 0 6px; }
 
   /* Markers */
   .pin { width: 48px; height: 56px; position: relative; }
@@ -121,12 +142,13 @@
 <header>
   <h1>Mes <span>Stickers</span></h1>
   <div id="stats"></div>
-  <button class="icon-btn" id="menu-btn" aria-label="Menu">⋯</button>
 </header>
 
 <main>
-  <section class="view active" id="view-map">
+  <section class="view active" id="view-home"></section>
+  <section class="view" id="view-map">
     <div id="map"></div>
+    <button id="layer-btn"></button>
     <button class="icon-btn" id="fit-btn" aria-label="Voir tous mes stickers">⤢</button>
     <div id="empty-map" hidden>Aucun sticker pour l'instant. Appuie sur <b>＋</b> pour ajouter le premier !</div>
   </section>
@@ -137,9 +159,11 @@
 </main>
 
 <nav>
-  <button class="tab on" data-view="map"><b>🗺️</b>Carte</button>
+  <button class="tab on" data-view="home"><b>🏠</b>Accueil</button>
+  <button class="tab" data-view="map"><b>🗺️</b>Carte</button>
   <button id="fab" aria-label="Ajouter un sticker">＋</button>
   <button class="tab" data-view="gallery"><b>🖼️</b>Galerie</button>
+  <button class="tab" id="nav-settings"><b>⚙️</b>Réglages</button>
 </nav>
 
 <input type="file" id="in-camera" accept="image/*" capture="environment" hidden>
@@ -203,10 +227,16 @@
   </div>
 </div>
 
-<!-- Menu -->
+<!-- Réglages -->
 <div class="sheet-wrap" id="sh-menu">
   <div class="sheet">
-    <div class="sheet-head"><h2>Sauvegarde</h2><button class="icon-btn" data-close>✕</button></div>
+    <div class="sheet-head"><h2>Réglages</h2><button class="icon-btn" data-close>✕</button></div>
+    <h3 class="sub">🏠 Chez moi</h3>
+    <p class="hint" style="margin-top:0" id="home-current"></p>
+    <button class="btn" id="home-locate" style="width:100%">📍 Utiliser ma position actuelle</button>
+    <input type="search" id="home-search" placeholder="…ou chercher ta ville" style="margin-top:8px">
+    <div class="search-results" id="home-results"></div>
+    <h3 class="sub">💾 Sauvegarde</h3>
     <p class="hint" style="margin-top:0">Tes stickers sont stockés uniquement sur cet appareil, dans l'app. Exporte une sauvegarde de temps en temps (sur iCloud Drive, Google Drive…) pour ne jamais les perdre, ou pour les transférer sur un autre téléphone.</p>
     <div class="choice" style="margin-top:12px">
       <button class="btn primary" id="btn-export">⬇️ Exporter une sauvegarde</button>
@@ -242,20 +272,24 @@ function placeLabel(s) {
 }
 
 // ---------- Base de données locale (IndexedDB) ----------
-const STORE = "stickers";
+const STORE = "stickers", SETTINGS = "settings";
 let db;
 function openDB() {
   return new Promise((res, rej) => {
-    const r = indexedDB.open("mes-stickers", 1);
-    r.onupgradeneeded = () => r.result.createObjectStore(STORE, { keyPath: "id" });
+    const r = indexedDB.open("mes-stickers", 2);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      if (!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE, { keyPath: "id" });
+      if (!d.objectStoreNames.contains(SETTINGS)) d.createObjectStore(SETTINGS);
+    };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
   });
 }
-function tx(mode, fn) {
+function tx(mode, fn, store = STORE) {
   return new Promise((res, rej) => {
-    const t = db.transaction(STORE, mode);
-    const req = fn(t.objectStore(STORE));
+    const t = db.transaction(store, mode);
+    const req = fn(t.objectStore(store));
     t.oncomplete = () => res(req && req.result);
     t.onerror = () => rej(t.error);
   });
@@ -263,6 +297,8 @@ function tx(mode, fn) {
 const dbAll = () => tx("readonly", s => s.getAll());
 const dbPut = o => tx("readwrite", s => s.put(o));
 const dbDel = id => tx("readwrite", s => s.delete(id));
+const getSetting = k => tx("readonly", s => s.get(k), SETTINGS);
+const setSetting = (k, v) => tx("readwrite", s => s.put(v, k), SETTINGS);
 
 // ---------- Lecture GPS / date dans l'EXIF d'une photo JPEG ----------
 async function readExif(file) {
@@ -385,10 +421,33 @@ function forgetUrls(id) {
 }
 
 // ---------- Carte principale ----------
-const TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const TILE_OPTS = { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 };
-const map = L.map("map", { zoomControl: false, worldCopyJump: true }).setView([25, 10], 2);
-L.tileLayer(TILES, TILE_OPTS).addTo(map);
+// Deux fonds : satellite en couleurs réelles (avec routes et noms de lieux) ou plan OpenStreetMap
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/";
+function makeBase(kind) {
+  if (kind === "plan") return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>', maxZoom: 19 });
+  const o = { maxNativeZoom: 18, maxZoom: 19 };
+  return L.layerGroup([
+    L.tileLayer(ESRI + "World_Imagery/MapServer/tile/{z}/{y}/{x}", { ...o, attribution: "Imagerie © Esri, Maxar, Earthstar Geographics" }),
+    L.tileLayer(ESRI + "Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}", o),
+    L.tileLayer(ESRI + "Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}", o)
+  ]);
+}
+let baseKind = "satellite";
+try { baseKind = localStorage.getItem("baseKind") || "satellite"; } catch (e) {}
+const bases = new Map();
+function setBase(m) { bases.get(m)?.remove(); bases.set(m, makeBase(baseKind).addTo(m)); }
+function renderLayerBtn() { $("#layer-btn").textContent = baseKind === "satellite" ? "🗺️ Plan" : "🛰️ Satellite"; }
+
+const map = L.map("map", { zoomControl: false, worldCopyJump: true, minZoom: 2 }).setView([25, 10], 2);
+setBase(map);
+renderLayerBtn();
+$("#layer-btn").onclick = () => {
+  baseKind = baseKind === "satellite" ? "plan" : "satellite";
+  try { localStorage.setItem("baseKind", baseKind); } catch (e) {}
+  setBase(map);
+  if (addMap) setBase(addMap);
+  renderLayerBtn();
+};
 const cluster = L.markerClusterGroup({
   showCoverageOnHover: false, maxClusterRadius: 50,
   iconCreateFunction: c => L.divIcon({ html: `<div class="cl">${c.getChildCount()}</div>`, className: "", iconSize: [44, 44] })
@@ -443,15 +502,101 @@ function renderStats() {
   const n = stickers.length, c = new Set(stickers.map(s => s.place?.cc).filter(Boolean)).size;
   $("#stats").textContent = `${n} sticker${n > 1 ? "s" : ""} · ${c} pays`;
 }
-function renderAll() { renderMap(); renderGallery(); renderStats(); }
+function renderAll() { renderMap(); renderGallery(); renderStats(); renderHome(); }
+
+// ---------- Accueil ----------
+let home = null, topCity = null, far = null;
+function distKm(lat1, lng1, lat2, lng2) {
+  const r = x => x * Math.PI / 180;
+  const h = Math.sin(r(lat2 - lat1) / 2) ** 2 + Math.cos(r(lat1)) * Math.cos(r(lat2)) * Math.sin(r(lng2 - lng1) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+const fmtKm = d => d < 1 ? `${Math.round(d * 1000)} m` : `${Math.round(d).toLocaleString("fr-FR")} km`;
+function since(iso) {
+  const a = new Date(iso), b = new Date();
+  let m = (b.getFullYear() - a.getFullYear()) * 12 + b.getMonth() - a.getMonth();
+  if (b.getDate() < a.getDate()) m--;
+  if (m < 1) {
+    const d = Math.floor((b - a) / 864e5);
+    return d < 1 ? "premier sticker aujourd'hui !" : `ça fait ${d} jour${d > 1 ? "s" : ""}`;
+  }
+  const y = Math.floor(m / 12), r = m % 12;
+  return "ça fait " + [y ? `${y} an${y > 1 ? "s" : ""}` : "", r ? `${r} mois` : ""].filter(Boolean).join(" et ");
+}
+// 3 stickers tirés au sort, toujours les mêmes pendant toute la journée
+function dailyPicks(n) {
+  let h = 2166136261;
+  for (const c of new Date().toDateString()) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  const rnd = () => { h = h + 0x6D2B79F5 | 0; let t = Math.imul(h ^ h >>> 15, 1 | h); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const arr = [...stickers].sort((a, b) => a.id < b.id ? -1 : 1);
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  return arr.slice(0, n);
+}
+function renderHome() {
+  const el = $("#view-home");
+  if (!stickers.length) {
+    el.innerHTML = `<div class="hero"><div class="big-n">0</div><div class="l1">sticker collé pour l'instant</div></div>
+      <button class="btn primary" data-act="add" style="width:100%;padding:16px">📷 Coller mon premier sticker</button>`;
+    return;
+  }
+  const n = stickers.length;
+  const nc = new Set(stickers.map(s => s.place?.cc).filter(Boolean)).size;
+  const cities = {};
+  for (const s of stickers) if (s.place?.city) (cities[s.place.cc + "|" + s.place.city] ??= { city: s.place.city, cc: s.place.cc, list: [] }).list.push(s);
+  topCity = Object.values(cities).sort((a, b) => b.list.length - a.list.length)[0] || null;
+  far = null;
+  if (home) for (const s of stickers) { const d = distKm(home.lat, home.lng, s.lat, s.lng); if (!far || d > far.d) far = { s, d }; }
+  const first = stickers.reduce((a, b) => new Date(b.takenAt) < new Date(a.takenAt) ? b : a);
+  const where = s => s.place ? `${flag(s.place.cc)} ${esc(s.place.city || s.place.country)}` : "📍 …";
+
+  el.innerHTML = `
+    <div class="hero">
+      <div class="big-n">${n}</div>
+      <div class="l1">sticker${n > 1 ? "s" : ""} collé${n > 1 ? "s" : ""}${nc ? ` dans <b>${nc} pays</b>` : ""}</div>
+    </div>
+    <div class="stat-grid">
+      <button class="stat" data-act="city">
+        <div class="k">🏙️ Ville n°1</div>
+        <div class="v">${topCity ? `${flag(topCity.cc)} ${esc(topCity.city)}` : "—"}</div>
+        <div class="s">${topCity ? `${topCity.list.length} sticker${topCity.list.length > 1 ? "s" : ""}` : "lieux en cours de recherche…"}</div>
+      </button>
+      <button class="stat" data-act="far">
+        <div class="k">✈️ Le plus loin</div>
+        <div class="v">${far ? where(far.s) : "🏠 Chez toi ?"}</div>
+        <div class="s">${far ? `à ${fmtKm(far.d)} de chez toi` : "Touche pour indiquer où tu habites"}</div>
+      </button>
+      <div class="stat wide">
+        <div class="k">🗓️ Je colle depuis le</div>
+        <div class="v">${fmtDate(first.takenAt)}</div>
+        <div class="s">${since(first.takenAt)}</div>
+      </div>
+    </div>
+    <div class="section-title">⭐ Les stickers du jour <span>changent chaque jour</span></div>
+    <div class="daily">${dailyPicks(3).map(s =>
+      `<button class="card" data-act="sticker" data-id="${s.id}"><img src="${blobUrl(s, "photo")}" alt="" loading="lazy"><span class="cap">${where(s)}</span></button>`).join("")}
+    </div>`;
+}
+$("#view-home").onclick = e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const act = b.dataset.act;
+  if (act === "add") openSheet("#sh-choice");
+  else if (act === "sticker") openDetail(b.dataset.id);
+  else if (act === "city" && topCity) showView("map", () => map.fitBounds(L.latLngBounds(topCity.list.map(s => [s.lat, s.lng])), { padding: [50, 50], maxZoom: 16 }));
+  else if (act === "far") far ? openDetail(far.s.id) : $("#nav-settings").click();
+};
 
 // ---------- Onglets ----------
-function showView(name) {
+let mapFitted = false;
+function showView(name, after) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
   document.querySelectorAll("nav .tab").forEach(t => t.classList.toggle("on", t.dataset.view === name));
-  if (name === "map") setTimeout(() => map.invalidateSize(), 0);
+  if (name === "map") setTimeout(() => {
+    map.invalidateSize();
+    if (after) after(); else if (!mapFitted) fitAll();
+    mapFitted = true;
+  }, 0);
 }
-document.querySelectorAll("nav .tab").forEach(t => t.onclick = () => showView(t.dataset.view));
+document.querySelectorAll("nav .tab[data-view]").forEach(t => t.onclick = () => showView(t.dataset.view));
 
 // ---------- Feuilles (modales) ----------
 const openSheet = id => $(id).classList.add("open");
@@ -479,7 +624,7 @@ function setStatus(html, cls = "") { const s = $("#add-status"); s.className = "
 function ensureAddMap() {
   if (addMap) return;
   addMap = L.map("add-map", { zoomControl: false, attributionControl: false }).setView([25, 10], 2);
-  L.tileLayer(TILES, TILE_OPTS).addTo(addMap);
+  setBase(addMap);
   addMap.on("click", e => setDraftPos(e.latlng.lat, e.latlng.lng, "manual"));
 }
 function setDraftPos(lat, lng, source, accuracy = null) {
@@ -546,25 +691,28 @@ async function startAdd(file, fromCamera) {
 
 $("#add-locate").onclick = () => locateDraft(null);
 
-let searchT;
-$("#add-search").oninput = e => {
-  clearTimeout(searchT);
-  const q = e.target.value.trim();
-  if (q.length < 3) { $("#add-results").innerHTML = ""; return; }
-  searchT = setTimeout(async () => {
-    try {
-      const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=fr,en&q=${encodeURIComponent(q)}`);
-      const list = await r.json();
-      $("#add-results").innerHTML = list.map(x => `<button data-lat="${x.lat}" data-lng="${x.lon}">${esc(x.display_name)}</button>`).join("") ||
-        '<button disabled>Aucun résultat</button>';
-    } catch (err) { $("#add-results").innerHTML = '<button disabled>Recherche indisponible (hors ligne ?)</button>'; }
-  }, 450);
-};
-$("#add-results").onclick = e => {
-  const b = e.target.closest("button[data-lat]"); if (!b) return;
-  setDraftPos(+b.dataset.lat, +b.dataset.lng, "search");
-  $("#add-results").innerHTML = ""; $("#add-search").value = "";
-};
+function attachSearch(input, results, onPick) {
+  let t;
+  input.oninput = () => {
+    clearTimeout(t);
+    const q = input.value.trim();
+    if (q.length < 3) { results.innerHTML = ""; return; }
+    t = setTimeout(async () => {
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=fr,en&q=${encodeURIComponent(q)}`);
+        const list = await r.json();
+        results.innerHTML = list.map(x => `<button data-lat="${x.lat}" data-lng="${x.lon}">${esc(x.display_name)}</button>`).join("") ||
+          '<button disabled>Aucun résultat</button>';
+      } catch (err) { results.innerHTML = '<button disabled>Recherche indisponible (hors ligne ?)</button>'; }
+    }, 450);
+  };
+  results.onclick = e => {
+    const b = e.target.closest("button[data-lat]"); if (!b) return;
+    results.innerHTML = ""; input.value = "";
+    onPick(+b.dataset.lat, +b.dataset.lng, b.textContent.split(",")[0]);
+  };
+}
+attachSearch($("#add-search"), $("#add-results"), (lat, lng) => setDraftPos(lat, lng, "search"));
 
 $("#add-save").onclick = async () => {
   if (!draft || draft.lat == null) return;
@@ -583,8 +731,7 @@ $("#add-save").onclick = async () => {
   draft = null;
   closeSheet("#sh-add");
   renderAll();
-  showView("map");
-  map.setView([s.lat, s.lng], 16);
+  showView("map", () => map.setView([s.lat, s.lng], 16));
   toast("Sticker ajouté 🔥");
   fillMissingPlaces();
 };
@@ -606,9 +753,9 @@ function openDetail(id) {
 $("#d-note").onchange = async () => { if (!current) return; current.note = $("#d-note").value.trim(); await dbPut(current); };
 $("#d-onmap").onclick = () => {
   if (!current) return;
-  closeSheet("#sh-detail"); showView("map");
-  const m = markers.get(current.id);
-  setTimeout(() => m ? cluster.zoomToShowLayer(m, () => map.setView(m.getLatLng(), Math.max(map.getZoom(), 17))) : map.setView([current.lat, current.lng], 17), 50);
+  const s = current, m = markers.get(s.id);
+  closeSheet("#sh-detail");
+  showView("map", () => m ? cluster.zoomToShowLayer(m, () => map.setView(m.getLatLng(), Math.max(map.getZoom(), 17))) : map.setView([s.lat, s.lng], 17));
 };
 $("#d-delete").onclick = async () => {
   if (!current || !confirm("Supprimer ce sticker de ta collection ?")) return;
@@ -621,7 +768,27 @@ $("#d-delete").onclick = async () => {
 };
 
 // ---------- Sauvegarde ----------
-$("#menu-btn").onclick = async () => {
+function renderHomeSetting() {
+  $("#home-current").innerHTML = home
+    ? `Chez toi : <b>${esc(home.label)}</b>. Sert à calculer ton sticker le plus éloigné.`
+    : "Indique où tu habites pour voir ton sticker le plus éloigné (et à combien de km).";
+}
+async function saveHome(lat, lng, label) {
+  home = { lat, lng, label: label || `${lat.toFixed(3)}, ${lng.toFixed(3)}` };
+  try { const p = await reverseGeocode(lat, lng); home.label = [p.city, p.country].filter(Boolean).join(", ") || home.label; } catch (e) {}
+  await setSetting("home", home);
+  renderHomeSetting(); renderHome();
+  toast(`🏠 Chez toi : ${home.label}`);
+}
+$("#home-locate").onclick = async () => {
+  $("#home-current").innerHTML = '<span class="spinner"></span> Localisation en cours…';
+  try { const p = await getPosition(); await saveHome(p.coords.latitude, p.coords.longitude, "Ma position"); }
+  catch (e) { renderHomeSetting(); toast(e.message, 4000); }
+};
+attachSearch($("#home-search"), $("#home-results"), saveHome);
+
+$("#nav-settings").onclick = async () => {
+  renderHomeSetting();
   openSheet("#sh-menu");
   try {
     const est = await navigator.storage?.estimate?.();
@@ -636,7 +803,7 @@ $("#btn-export").onclick = async () => {
   const out = [];
   for (const s of stickers) out.push({ ...s, photo: await blobToDataURL(s.photo), thumb: await blobToDataURL(s.thumb) });
   const name = `stickers-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
-  const blob = new Blob([JSON.stringify({ app: "mes-stickers", version: 1, exportedAt: new Date().toISOString(), stickers: out })], { type: "application/json" });
+  const blob = new Blob([JSON.stringify({ app: "mes-stickers", version: 1, exportedAt: new Date().toISOString(), home, stickers: out })], { type: "application/json" });
   const file = new File([blob], name, { type: "application/json" });
   if (navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], title: "Sauvegarde stickers" }); return; } catch (e) { if (e.name === "AbortError") return; }
@@ -657,7 +824,9 @@ $("#in-backup").onchange = async e => {
       await dbPut(s); forgetUrls(s.id);
       stickers = stickers.filter(o => o.id !== s.id); stickers.push(s); n++;
     }
-    renderAll(); fitAll(); closeSheet("#sh-menu");
+    if (data.home && !home) { home = data.home; await setSetting("home", home); }
+    mapFitted = false;
+    renderAll(); renderHomeSetting(); closeSheet("#sh-menu");
     toast(`${n} sticker${n > 1 ? "s" : ""} importé${n > 1 ? "s" : ""} ✅`);
   } catch (err) { toast("Import impossible : " + err.message, 4000); }
 };
@@ -667,9 +836,9 @@ $("#in-backup").onchange = async e => {
   try {
     db = await openDB();
     stickers = await dbAll();
+    home = (await getSetting("home")) || null;
   } catch (e) { toast("Stockage indisponible sur ce navigateur 😕", 5000); }
   renderAll();
-  fitAll();
   navigator.storage?.persist?.().catch(() => {});
   fillMissingPlaces();
   window.addEventListener("online", fillMissingPlaces);
