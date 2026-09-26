@@ -50,7 +50,7 @@
   #map { position: absolute; inset: 0; background: #03040b center / cover no-repeat; }
   #fit-btn { position: absolute; right: 12px; top: 12px; z-index: 500; }
   #layer-btn { position: absolute; left: 12px; top: 12px; z-index: 500; background: var(--panel); border: 1px solid var(--line);
-    border-radius: 10px; height: 36px; padding: 0 12px; font-size: 14px; font-weight: 600; }
+    border-radius: 10px; height: 36px; padding: 0 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; color: var(--text); }
   #empty-map { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 500;
     background: rgba(15,17,21,.9); padding: 10px 14px; border-radius: 12px; font-size: 14px; text-align: center; width: max-content; max-width: calc(100% - 32px); }
 
@@ -69,10 +69,10 @@
   nav { display: flex; align-items: center; justify-content: space-around; background: var(--panel);
     border-top: 1px solid var(--line); padding: 6px 8px calc(6px + var(--safe-b)); z-index: 5; }
   nav .tab { background: none; border: 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; padding: 6px 2px; min-width: 62px; }
-  nav .tab b { font-size: 22px; font-weight: normal; line-height: 1; }
+  nav .tab > span { height: 25px; }
   nav .tab.on { color: var(--text); }
   #fab { width: 62px; height: 62px; border-radius: 50%; border: 4px solid var(--bg); background: var(--accent); color: #fff;
-    font-size: 28px; margin-top: -30px; box-shadow: 0 6px 20px rgba(255,61,87,.4); }
+    display: grid; place-items: center; margin-top: -30px; box-shadow: 0 6px 20px rgba(255,61,87,.4); }
 
   /* Accueil */
   #view-home { overflow-y: auto; padding: 8px 16px 28px; }
@@ -88,7 +88,7 @@
   .stat .v { font-size: 18px; font-weight: 800; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stat .s { font-size: 13px; color: var(--muted); margin-top: 2px; }
   .section-title { display: flex; justify-content: space-between; align-items: baseline; font-size: 16px; font-weight: 800; margin: 26px 0 10px; }
-  .section-title span { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .section-title > span { font-size: 12px; color: var(--muted); font-weight: 500; }
   .daily { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .daily .card { aspect-ratio: 3 / 4; }
   h3.sub { font-size: 15px; margin: 18px 0 6px; }
@@ -121,7 +121,8 @@
   input[type=text], input[type=search], input[type=datetime-local], textarea {
     width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 16px; }
   textarea { resize: vertical; min-height: 60px; }
-  .btn { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-weight: 600; text-align: center; text-decoration: none; color: var(--text); display: block; }
+  .btn { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-weight: 600; text-align: center; text-decoration: none; color: var(--text);
+    display: flex; align-items: center; justify-content: center; }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .btn.danger { color: #ff7a8c; }
   .btn:disabled { opacity: .45; }
@@ -149,6 +150,20 @@
   #viewer-hint { position: absolute; bottom: calc(18px + var(--safe-b)); left: 50%; transform: translateX(-50%); font-size: 13px;
     color: #ccc; background: rgba(0,0,0,.6); padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
   .zoomable { cursor: zoom-in; }
+
+  /* Icônes au trait, une seule couleur */
+  .ic { width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    vertical-align: -0.2em; flex: none; }
+  [data-ic] { display: inline-flex; }
+  .btn .ic, .map-ctl .ic { margin-right: .4em; }
+  .icon-btn .ic { width: 18px; height: 18px; }
+  nav .tab .ic { width: 25px; height: 25px; stroke-width: 1.6; }
+  #fab .ic { width: 28px; height: 28px; stroke-width: 2.2; }
+  .stat .k .ic, .section-title .ic { width: 14px; height: 14px; margin-right: 5px; vertical-align: -2px; }
+  .status .ic, .meta p .ic { margin-right: 6px; }
+  .cc { display: inline-block; font-size: .62em; font-weight: 700; letter-spacing: .5px; line-height: 1; padding: 3px 5px 2px;
+    border: 1px solid currentColor; border-radius: 5px; opacity: .7; vertical-align: .2em; margin-left: .35em; }
+  .card .cap .cc { font-size: 9px; margin-left: 4px; }
 </style>
 </head>
 <body>
@@ -162,8 +177,8 @@
   <section class="view" id="view-map">
     <div id="map"></div>
     <button id="layer-btn"></button>
-    <button class="icon-btn" id="fit-btn" aria-label="Voir tous mes stickers">⤢</button>
-    <div id="empty-map" hidden>Aucun sticker pour l'instant. Appuie sur <b>＋</b> pour ajouter le premier !</div>
+    <button class="icon-btn" id="fit-btn" aria-label="Voir tous mes stickers"><span data-ic="focus"></span></button>
+    <div id="empty-map" hidden>Aucun sticker pour l'instant. Appuie sur <b>+</b> pour ajouter le premier.</div>
   </section>
   <section class="view" id="view-gallery">
     <div id="chips"></div>
@@ -172,11 +187,11 @@
 </main>
 
 <nav>
-  <button class="tab on" data-view="home"><b>🏠</b>Accueil</button>
-  <button class="tab" data-view="map"><b>🗺️</b>Carte</button>
-  <button id="fab" aria-label="Ajouter un sticker">＋</button>
-  <button class="tab" data-view="gallery"><b>🖼️</b>Galerie</button>
-  <button class="tab" id="nav-settings"><b>⚙️</b>Réglages</button>
+  <button class="tab on" data-view="home"><span data-ic="home"></span>Accueil</button>
+  <button class="tab" data-view="map"><span data-ic="globe"></span>Carte</button>
+  <button id="fab" aria-label="Ajouter un sticker"><span data-ic="plus"></span></button>
+  <button class="tab" data-view="gallery"><span data-ic="grid"></span>Galerie</button>
+  <button class="tab" id="nav-settings"><span data-ic="sliders"></span>Réglages</button>
 </nav>
 
 <input type="file" id="in-camera" accept="image/*" capture="environment" hidden>
@@ -186,10 +201,10 @@
 <!-- Choix source -->
 <div class="sheet-wrap" id="sh-choice">
   <div class="sheet">
-    <div class="sheet-head"><h2>Nouveau sticker</h2><button class="icon-btn" data-close>✕</button></div>
+    <div class="sheet-head"><h2>Nouveau sticker</h2><button class="icon-btn" data-close aria-label="Fermer"><span data-ic="x"></span></button></div>
     <div class="choice">
-      <button class="btn primary" id="btn-camera">📷 Prendre une photo</button>
-      <button class="btn" id="btn-library">🖼️ Choisir dans mes photos</button>
+      <button class="btn primary" id="btn-camera"><span data-ic="camera"></span>Prendre une photo</button>
+      <button class="btn" id="btn-library"><span data-ic="image"></span>Choisir dans mes photos</button>
     </div>
     <p class="hint">Avec « Prendre une photo », ta position GPS actuelle est enregistrée automatiquement. Depuis tes photos, la position est lue dans la photo si elle y est.</p>
   </div>
@@ -198,13 +213,13 @@
 <!-- Ajout -->
 <div class="sheet-wrap" id="sh-add">
   <div class="sheet">
-    <div class="sheet-head"><h2>Ajouter le sticker</h2><button class="icon-btn" data-close>✕</button></div>
+    <div class="sheet-head"><h2>Ajouter le sticker</h2><button class="icon-btn" data-close aria-label="Fermer"><span data-ic="x"></span></button></div>
     <img class="preview" id="add-preview" alt="">
     <div class="status" id="add-status"></div>
     <div class="minimap" id="add-map"></div>
     <p class="hint">Touche la carte ou déplace le point pour corriger l'emplacement.</p>
     <div class="row">
-      <button class="btn" id="add-locate">📍 Ma position</button>
+      <button class="btn" id="add-locate"><span data-ic="pin"></span>Ma position</button>
     </div>
     <input type="search" id="add-search" placeholder="…ou chercher un lieu (ville, rue)" style="margin-top:8px">
     <div class="search-results" id="add-results"></div>
@@ -221,7 +236,7 @@
 <!-- Détail -->
 <div class="sheet-wrap" id="sh-detail">
   <div class="sheet">
-    <div class="sheet-head"><h2 id="d-title">Sticker</h2><button class="icon-btn" data-close>✕</button></div>
+    <div class="sheet-head"><h2 id="d-title">Sticker</h2><button class="icon-btn" data-close aria-label="Fermer"><span data-ic="x"></span></button></div>
     <img class="big zoomable" id="d-img" alt="" title="Toucher pour zoomer">
     <div class="meta">
       <h3 id="d-place"></h3>
@@ -231,11 +246,11 @@
     <label class="f" for="d-note">Note</label>
     <textarea id="d-note"></textarea>
     <div class="row" style="margin-top:12px">
-      <button class="btn" id="d-onmap">🗺️ Sur la carte</button>
-      <a class="btn" id="d-maps" target="_blank" rel="noopener">🧭 Itinéraire</a>
+      <button class="btn" id="d-onmap"><span data-ic="globe"></span>Sur la carte</button>
+      <a class="btn" id="d-maps" target="_blank" rel="noopener"><span data-ic="nav"></span>Itinéraire</a>
     </div>
     <div class="row">
-      <button class="btn danger" id="d-delete">🗑️ Supprimer</button>
+      <button class="btn danger" id="d-delete"><span data-ic="trash"></span>Supprimer</button>
     </div>
   </div>
 </div>
@@ -243,17 +258,17 @@
 <!-- Réglages -->
 <div class="sheet-wrap" id="sh-menu">
   <div class="sheet">
-    <div class="sheet-head"><h2>Réglages</h2><button class="icon-btn" data-close>✕</button></div>
-    <h3 class="sub">🏠 Chez moi</h3>
+    <div class="sheet-head"><h2>Réglages</h2><button class="icon-btn" data-close aria-label="Fermer"><span data-ic="x"></span></button></div>
+    <h3 class="sub">Chez moi</h3>
     <p class="hint" style="margin-top:0" id="home-current"></p>
-    <button class="btn" id="home-locate" style="width:100%">📍 Utiliser ma position actuelle</button>
+    <button class="btn" id="home-locate" style="width:100%"><span data-ic="pin"></span>Utiliser ma position actuelle</button>
     <input type="search" id="home-search" placeholder="…ou chercher ta ville" style="margin-top:8px">
     <div class="search-results" id="home-results"></div>
-    <h3 class="sub">💾 Sauvegarde</h3>
+    <h3 class="sub">Sauvegarde</h3>
     <p class="hint" style="margin-top:0">Tes stickers sont stockés uniquement sur cet appareil, dans l'app. Exporte une sauvegarde de temps en temps (sur iCloud Drive, Google Drive…) pour ne jamais les perdre, ou pour les transférer sur un autre téléphone.</p>
     <div class="choice" style="margin-top:12px">
-      <button class="btn primary" id="btn-export">⬇️ Exporter une sauvegarde</button>
-      <button class="btn" id="btn-import">⬆️ Importer une sauvegarde</button>
+      <button class="btn primary" id="btn-export"><span data-ic="download"></span>Exporter une sauvegarde</button>
+      <button class="btn" id="btn-import"><span data-ic="upload"></span>Importer une sauvegarde</button>
     </div>
     <p class="hint" id="storage-info"></p>
   </div>
@@ -261,7 +276,7 @@
 
 <div id="viewer" hidden>
   <img id="viewer-img" alt="">
-  <button class="icon-btn" id="viewer-close" aria-label="Fermer">✕</button>
+  <button class="icon-btn" id="viewer-close" aria-label="Fermer"><span data-ic="x"></span></button>
   <div id="viewer-hint">Pince ou double-tape pour zoomer</div>
 </div>
 
@@ -278,7 +293,33 @@ function toast(msg, ms = 2600) {
   clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = "none", ms);
 }
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
-const flag = cc => cc && cc.length === 2 ? String.fromCodePoint(...[...cc.toUpperCase()].map(c => 127397 + c.charCodeAt(0))) : "🏳️";
+// Icônes au trait (24×24, une couleur : celle du texte)
+const ICONS = {
+  home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  grid: '<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+  sliders: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
+  image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  nav: '<path d="M3 11 21 3l-8 18-2-8z"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
+  download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  upload: '<path d="M12 16V5M7 10l5-5 5 5M5 20h14"/>',
+  layers: '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+  focus: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  city: '<path d="M3 21h18M5 21V9l5-3v15M10 21V4l9 4v13M14 10h2M14 14h2M14 18h2"/>',
+  far: '<path d="M7 17 17 7M9 7h8v8"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  star: '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7"/>',
+  alert: '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/>'
+};
+const ic = name => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">${ICONS[name]}</svg>`;
+document.querySelectorAll("[data-ic]").forEach(el => el.innerHTML = ic(el.dataset.ic));
+const ccTag = cc => cc ? `<span class="cc">${esc(cc)}</span>` : "";
 const fmtDate = iso => new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 const fmtDateTime = iso => new Date(iso).toLocaleString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" });
 const toLocalInput = d => { const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -468,7 +509,7 @@ function applyBase(m) {
   for (const id of SAT_LAYERS) m.setLayoutProperty(id, "visibility", baseKind === "satellite" ? "visible" : "none");
   m.setLayoutProperty("osm", "visibility", baseKind === "plan" ? "visible" : "none");
 }
-function renderLayerBtn() { $("#layer-btn").textContent = baseKind === "satellite" ? "🗺️ Plan" : "🛰️ Satellite"; }
+function renderLayerBtn() { $("#layer-btn").innerHTML = ic("layers") + (baseKind === "satellite" ? "Plan" : "Satellite"); }
 
 // Fond espace : étoiles et nébuleuses dessinées une fois
 function starfield() {
@@ -601,14 +642,14 @@ function renderGallery() {
   if (countryFilter && !byCountry[countryFilter]) countryFilter = null;
   $("#chips").innerHTML =
     `<button class="chip ${countryFilter ? "" : "on"}" data-cc="">Tous (${stickers.length})</button>` +
-    countries.map(c => `<button class="chip ${countryFilter === c.cc ? "on" : ""}" data-cc="${esc(c.cc)}">${c.cc === "?" ? "❓" : flag(c.cc)} ${esc(c.name)} (${c.n})</button>`).join("");
+    countries.map(c => `<button class="chip ${countryFilter === c.cc ? "on" : ""}" data-cc="${esc(c.cc)}">${esc(c.name)} (${c.n})</button>`).join("");
   const list = stickers
     .filter(s => !countryFilter || (s.place?.cc || "?") === countryFilter)
     .sort((a, b) => new Date(b.takenAt) - new Date(a.takenAt));
   $("#grid").innerHTML = list.length ? list.map(s =>
-    `<button class="card" data-id="${s.id}"><img src="${blobUrl(s, "thumb")}" alt="" loading="lazy"><span class="cap">${s.place ? flag(s.place.cc) + " " + esc(s.place.city || s.place.country) : "📍 …"}</span></button>`
+    `<button class="card" data-id="${s.id}"><img src="${blobUrl(s, "thumb")}" alt="" loading="lazy"><span class="cap">${s.place ? esc(s.place.city || s.place.country) + ccTag(s.place.cc) : "…"}</span></button>`
   ).join("") : "";
-  if (!stickers.length) $("#grid").innerHTML = `<div class="empty" style="grid-column:1/-1">Ta galerie est vide.<br>Colle un sticker, prends-le en photo avec ＋ 📷</div>`;
+  if (!stickers.length) $("#grid").innerHTML = `<div class="empty" style="grid-column:1/-1">Ta galerie est vide.<br>Colle un sticker et prends-le en photo avec le bouton +.</div>`;
 }
 $("#chips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; countryFilter = b.dataset.cc || null; renderGallery(); };
 $("#grid").onclick = e => { const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id); };
@@ -651,7 +692,7 @@ function renderHome() {
   const el = $("#view-home");
   if (!stickers.length) {
     el.innerHTML = `<div class="hero"><div class="big-n">0</div><div class="l1">sticker collé pour l'instant</div></div>
-      <button class="btn primary" data-act="add" style="width:100%;padding:16px">📷 Coller mon premier sticker</button>`;
+      <button class="btn primary" data-act="add" style="width:100%;padding:16px">${ic("camera")}Coller mon premier sticker</button>`;
     return;
   }
   const n = stickers.length;
@@ -662,7 +703,7 @@ function renderHome() {
   far = null;
   if (home) for (const s of stickers) { const d = distKm(home.lat, home.lng, s.lat, s.lng); if (!far || d > far.d) far = { s, d }; }
   const first = stickers.reduce((a, b) => new Date(b.takenAt) < new Date(a.takenAt) ? b : a);
-  const where = s => s.place ? `${flag(s.place.cc)} ${esc(s.place.city || s.place.country)}` : "📍 …";
+  const where = s => s.place ? `${esc(s.place.city || s.place.country)}${ccTag(s.place.cc)}` : "…";
 
   el.innerHTML = `
     <div class="hero">
@@ -671,22 +712,22 @@ function renderHome() {
     </div>
     <div class="stat-grid">
       <button class="stat" data-act="city">
-        <div class="k">🏙️ Ville n°1</div>
-        <div class="v">${topCity ? `${flag(topCity.cc)} ${esc(topCity.city)}` : "—"}</div>
+        <div class="k">${ic("city")}Ville n°1</div>
+        <div class="v">${topCity ? `${esc(topCity.city)}${ccTag(topCity.cc)}` : "—"}</div>
         <div class="s">${topCity ? `${topCity.list.length} sticker${topCity.list.length > 1 ? "s" : ""}` : "lieux en cours de recherche…"}</div>
       </button>
       <button class="stat" data-act="far">
-        <div class="k">✈️ Le plus loin</div>
-        <div class="v">${far ? where(far.s) : "🏠 Chez toi ?"}</div>
+        <div class="k">${ic("far")}Le plus loin</div>
+        <div class="v">${far ? where(far.s) : "Chez toi ?"}</div>
         <div class="s">${far ? `à ${fmtKm(far.d)} de chez toi` : "Touche pour indiquer où tu habites"}</div>
       </button>
       <div class="stat wide">
-        <div class="k">🗓️ Je colle depuis le</div>
+        <div class="k">${ic("calendar")}Je colle depuis le</div>
         <div class="v">${fmtDate(first.takenAt)}</div>
         <div class="s">${since(first.takenAt)}</div>
       </div>
     </div>
-    <div class="section-title">⭐ Les stickers du jour <span>changent chaque jour</span></div>
+    <div class="section-title"><div>${ic("star")}Les stickers du jour</div><span>changent chaque jour</span></div>
     <div class="daily">${dailyPicks(3).map(s =>
       `<button class="card" data-act="sticker" data-id="${s.id}"><img src="${blobUrl(s, "photo")}" alt="" loading="lazy"><span class="cap">${where(s)}</span></button>`).join("")}
     </div>`;
@@ -752,12 +793,12 @@ function setDraftPos(lat, lng, source, accuracy = null) {
   } else addMarker.setLngLat([lng, lat]);
   if (source !== "manual") addMap.jumpTo({ center: [lng, lat], zoom: 17 });
   const msg = {
-    photo: "✅ Position lue dans la photo",
-    gps: `✅ Position GPS enregistrée${accuracy ? ` (précision ±${Math.round(accuracy)} m)` : ""}`,
-    manual: "✅ Position placée à la main",
-    search: "✅ Position choisie par recherche"
+    photo: "Position lue dans la photo",
+    gps: `Position GPS enregistrée${accuracy ? ` (précision ±${Math.round(accuracy)} m)` : ""}`,
+    manual: "Position placée à la main",
+    search: "Position choisie par recherche"
   }[source];
-  setStatus(msg, "ok");
+  setStatus(ic("check") + msg, "ok");
   $("#add-save").disabled = false;
 }
 
@@ -769,7 +810,7 @@ async function locateDraft(promise) {
     catch (e) { if (!promise) throw e; p = await getPosition(); }
     if (draft) setDraftPos(p.coords.latitude, p.coords.longitude, "gps", p.coords.accuracy);
   } catch (e) {
-    if (draft && draft.lat == null) setStatus(`⚠️ ${esc(e.message)} Touche la carte pour placer le sticker.`, "warn");
+    if (draft && draft.lat == null) setStatus(`${ic("alert")}${esc(e.message)} Touche la carte pour placer le sticker.`, "warn");
   }
 }
 
@@ -791,7 +832,7 @@ async function startAdd(file, fromCamera) {
 
   if (exif?.lat != null) setDraftPos(exif.lat, exif.lng, "photo");
   else if (fromCamera) locateDraft(pos);
-  else setStatus("⚠️ Pas de position GPS dans cette photo. Touche la carte, cherche le lieu, ou utilise « Ma position ».", "warn");
+  else setStatus(ic("alert") + "Pas de position GPS dans cette photo. Touche la carte, cherche le lieu, ou utilise « Ma position ».", "warn");
 
   try {
     const img = await loadImage(file);
@@ -801,7 +842,7 @@ async function startAdd(file, fromCamera) {
     $("#add-preview").src = URL.createObjectURL(photo);
   } catch (e) {
     closeSheet("#sh-add"); draft = null;
-    toast("Impossible de lire cette image 😕");
+    toast("Impossible de lire cette image");
   }
 }
 
@@ -848,7 +889,7 @@ $("#add-save").onclick = async () => {
   closeSheet("#sh-add");
   renderAll();
   showView("map", () => map.flyTo({ center: [s.lng, s.lat], zoom: 16 }));
-  toast("Sticker ajouté 🔥");
+  toast("Sticker ajouté");
   fillMissingPlaces();
 };
 
@@ -858,10 +899,10 @@ function openDetail(id) {
   const s = stickers.find(x => x.id === id); if (!s) return;
   current = s;
   $("#d-img").src = blobUrl(s, "photo");
-  $("#d-title").textContent = s.place ? flag(s.place.cc) + " " + (s.place.country || "Sticker") : "Sticker";
+  $("#d-title").textContent = s.place?.country || "Sticker";
   $("#d-place").textContent = placeLabel(s);
-  $("#d-date").textContent = "🗓️ " + fmtDateTime(s.takenAt);
-  $("#d-coords").textContent = `📍 ${s.lat.toFixed(6)}, ${s.lng.toFixed(6)}${s.accuracy ? ` (±${Math.round(s.accuracy)} m)` : ""}`;
+  $("#d-date").innerHTML = ic("calendar") + fmtDateTime(s.takenAt);
+  $("#d-coords").innerHTML = `${ic("pin")}${s.lat.toFixed(6)}, ${s.lng.toFixed(6)}${s.accuracy ? ` (±${Math.round(s.accuracy)} m)` : ""}`;
   $("#d-note").value = s.note || "";
   $("#d-maps").href = `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
   openSheet("#sh-detail");
@@ -956,7 +997,7 @@ async function saveHome(lat, lng, label) {
   try { const p = await reverseGeocode(lat, lng); home.label = [p.city, p.country].filter(Boolean).join(", ") || home.label; } catch (e) {}
   await setSetting("home", home);
   renderHomeSetting(); renderHome();
-  toast(`🏠 Chez toi : ${home.label}`);
+  toast(`Chez toi : ${home.label}`);
 }
 $("#home-locate").onclick = async () => {
   $("#home-current").innerHTML = '<span class="spinner"></span> Localisation en cours…';
@@ -971,7 +1012,7 @@ $("#nav-settings").onclick = async () => {
   try {
     const est = await navigator.storage?.estimate?.();
     const persisted = await navigator.storage?.persisted?.();
-    $("#storage-info").textContent = est ? `Espace utilisé : ${(est.usage / 1048576).toFixed(1)} Mo${persisted ? " · stockage persistant ✅" : ""}` : "";
+    $("#storage-info").textContent = est ? `Espace utilisé : ${(est.usage / 1048576).toFixed(1)} Mo${persisted ? " · stockage persistant activé" : ""}` : "";
   } catch (e) {}
 };
 const blobToDataURL = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
@@ -1005,7 +1046,7 @@ $("#in-backup").onchange = async e => {
     if (data.home && !home) { home = data.home; await setSetting("home", home); }
     mapFitted = false;
     renderAll(); renderHomeSetting(); closeSheet("#sh-menu");
-    toast(`${n} sticker${n > 1 ? "s" : ""} importé${n > 1 ? "s" : ""} ✅`);
+    toast(`${n} sticker${n > 1 ? "s" : ""} importé${n > 1 ? "s" : ""}`);
   } catch (err) { toast("Import impossible : " + err.message, 4000); }
 };
 
@@ -1015,7 +1056,7 @@ $("#in-backup").onchange = async e => {
     db = await openDB();
     stickers = await dbAll();
     home = (await getSetting("home")) || null;
-  } catch (e) { toast("Stockage indisponible sur ce navigateur 😕", 5000); }
+  } catch (e) { toast("Stockage indisponible sur ce navigateur", 5000); }
   renderAll();
   navigator.storage?.persist?.().catch(() => {});
   fillMissingPlaces();
