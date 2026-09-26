@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#0f1115">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="No Borders">
 <title>No Borders</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -33,7 +33,7 @@
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
     font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  body { display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+  body { display: flex; flex-direction: column; position: fixed; inset: 0; overflow: hidden; }
   button { font: inherit; color: inherit; cursor: pointer; }
 
   header { display: flex; align-items: center; gap: 12px; padding: calc(10px + var(--safe-t)) 16px 10px;
@@ -67,7 +67,7 @@
   .empty { color: var(--muted); text-align: center; padding: 48px 16px; }
 
   nav { display: flex; align-items: center; justify-content: space-around; background: var(--panel);
-    border-top: 1px solid var(--line); padding: 6px 8px calc(6px + var(--safe-b)); z-index: 5; }
+    border-top: 1px solid var(--line); padding: 6px 8px max(8px, calc(var(--safe-b) - 8px)); z-index: 5; }
   nav .tab { background: none; border: 0; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; padding: 6px 2px; min-width: 62px; }
   nav .tab > span { height: 25px; }
   nav .tab.on { color: var(--text); }
