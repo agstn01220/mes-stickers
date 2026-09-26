@@ -1,5 +1,5 @@
 // Service worker : garde l'app disponible hors ligne (les photos, elles, sont dans IndexedDB).
-const CACHE = "mes-stickers-v5";
+const CACHE = "mes-stickers-v6";
 const SHELL = [
   "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png",
   "https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.24.0/maplibre-gl.min.css",
