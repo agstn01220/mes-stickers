@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="No Borders">
-<title>No Borders</title>
+<meta name="apple-mobile-web-app-title" content="Kollé">
+<title>Kollé</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -217,7 +217,7 @@
 </head>
 <body>
 <header>
-  <h1>NO <span>BORDERS</span></h1>
+  <h1>KOLL<span>É</span></h1>
   <div id="stats"></div>
 </header>
 
@@ -1358,7 +1358,7 @@ async function exportBackup() {
   const out = [];
   const pack = async o => ({ ...o, photo: o.photo && await blobToDataURL(o.photo), thumb: o.thumb && await blobToDataURL(o.thumb) });
   for (const s of stickers) out.push({ ...(await pack(s)), history: await Promise.all(hist(s).map(pack)) });
-  const name = `no-borders-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+  const name = `kolle-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
   const blob = new Blob([JSON.stringify({ app: "mes-stickers", version: 1, exportedAt: new Date().toISOString(), home, stickers: out })], { type: "application/json" });
   const file = new File([blob], name, { type: "application/json" });
   if (navigator.canShare?.({ files: [file] })) {

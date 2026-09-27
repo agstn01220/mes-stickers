@@ -1,4 +1,4 @@
-# 🚫🧱 No Borders
+# Kollé
 
 Stickers worldwide. Petite app perso et open source pour garder la trace de tous les stickers que je colle dans le monde.
 

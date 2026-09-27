@@ -9,8 +9,8 @@
     <path d="M62 142H450V304L386 368H62Z" fill="#000" stroke="#000" stroke-width="28" stroke-linejoin="round" transform="translate(12 14)"/>
     <path d="M62 142H450V304L386 368H62Z" fill="url(#st)" stroke="#fff" stroke-width="22" stroke-linejoin="round"/>
     <rect x="92" y="186" width="328" height="136" fill="#111" stroke="#fff" stroke-width="6"/>
-    <text x="256" y="258" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="58" fill="#fff" letter-spacing="1">NO BORDERS</text>
-    <text x="256" y="296" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="21" fill="#ffd23d" letter-spacing="4">STICKERS WORLDWIDE</text>
+    <text x="256" y="276" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="86" fill="#fff" letter-spacing="4">KOLL<tspan fill="#e3263f">É</tspan></text>
+    <text x="256" y="306" text-anchor="middle" font-family="Impact, 'Arial Black', sans-serif" font-size="21" fill="#ffd23d" letter-spacing="4">STICKERS WORLDWIDE</text>
     <path d="M450 304L386 368L386 304Z" fill="#e6e6e6" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>
   </g>
 </svg>
