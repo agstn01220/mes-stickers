@@ -35,6 +35,7 @@
     font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   body { display: flex; flex-direction: column; position: fixed; inset: 0; overflow: hidden; }
   button { font: inherit; color: inherit; cursor: pointer; }
+  [hidden] { display: none !important; }
 
   header { display: flex; align-items: center; gap: 12px; padding: calc(10px + var(--safe-t)) 16px 10px;
     background: var(--bg); border-bottom: 1px solid var(--line); z-index: 5; }
@@ -91,7 +92,12 @@
   .seg button { flex: none; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
   .seg button.on { color: var(--text); border-color: var(--text); }
   .sdot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
-  .sdot.ok { background: var(--ok); } .sdot.over { background: var(--accent-2); } .sdot.off { background: #7d8594; }
+  .sdot.ok { background: var(--ok); } .sdot.over { background: var(--accent-2); } .sdot.off { background: #7d8594; } .sdot.na { background: #6f9bd1; }
+  .sdot.stale { background: none; border: 1.5px solid var(--muted); width: 9px; height: 9px; }
+  .state-btns .btn.wide { grid-column: 1 / -1; }
+  .card .q, .pin .q { position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; border-radius: 50%; background: #6f9bd1; color: #fff;
+    font-size: 12px; font-weight: 800; display: grid; place-items: center; border: 1.5px solid #fff; }
+  .pin .q { top: -4px; right: -6px; border-width: 2px; }
   .state-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--panel-2); margin-top: 6px; }
   .state-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .state-btns .btn { padding: 10px 8px; font-size: 14px; }
@@ -306,6 +312,7 @@
       <button class="btn" data-ev="over"><span data-ic="layers"></span>Surstické</button>
       <button class="btn" data-ev="off"><span data-ic="off"></span>Décollé</button>
       <button class="btn" data-ev="mine"><span data-ic="plus"></span>Je resticke</button>
+      <button class="btn wide" data-ev="na"><span data-ic="help"></span>Inaccessible (je ne peux plus vérifier)</button>
     </div>
     <h3 class="sub" id="d-hist-title">Historique</h3>
     <div class="hist" id="d-hist"></div>
@@ -325,7 +332,7 @@
     <div class="sheet-head"><h2 id="ev-title">Surstické</h2><button class="icon-btn" data-close aria-label="Fermer"><span data-ic="x"></span></button></div>
     <p class="hint" style="margin-top:0" id="ev-hint"></p>
     <img class="preview" id="ev-preview" alt="" hidden>
-    <div class="row">
+    <div class="row" id="ev-photo-row">
       <button class="btn" id="ev-camera"><span data-ic="camera"></span>Photo</button>
       <button class="btn" id="ev-library"><span data-ic="image"></span>Mes photos</button>
     </div>
@@ -390,6 +397,7 @@ const ICONS = {
   sliders: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17v.01"/>',
   off: '<circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
@@ -428,11 +436,20 @@ const EV = {
   ok:   { label: "Toujours là", st: "ok" },
   over: { label: "Surstické", st: "over" },
   off:  { label: "Décollé", st: "off" },
-  mine: { label: "Restické par moi", st: "ok" }
+  mine: { label: "Restické par moi", st: "ok" },
+  na:   { label: "Inaccessible", st: "na" }
 };
-const ST_LABEL = { ok: "Toujours là", over: "Surstické", off: "Décollé" };
+const ST_LABEL = { ok: "Toujours là", over: "Surstické", off: "Décollé", na: "Inaccessible", stale: "À revérifier" };
+const STATES = ["ok", "over", "off", "na"];
 const hist = s => s.history || [];
 const stateOf = s => { const h = hist(s); return h.length ? EV[h[h.length - 1].type].st : "ok"; };
+// Dernière fois que j'ai eu des nouvelles du sticker (collage ou dernier passage)
+const lastSeen = s => { const h = hist(s); return h.length ? h[h.length - 1].date : s.takenAt; };
+// Pas de nouvelles depuis 6 mois : à revérifier (sauf s'il est décollé ou inaccessible, là on sait déjà)
+const STALE_DAYS = 183;
+const isStale = s => ["ok", "over"].includes(stateOf(s)) && (Date.now() - new Date(lastSeen(s))) / 864e5 > STALE_DAYS;
+const monthsAgo = iso => Math.max(1, Math.floor((Date.now() - new Date(iso)) / (30.44 * 864e5)));
+const stateCounts = () => { const c = { ok: 0, over: 0, off: 0, na: 0, stale: 0 }; for (const s of stickers) { c[stateOf(s)]++; if (isStale(s)) c.stale++; } return c; };
 const overlays = s => hist(s).filter(e => e.thumb); // photos collées par-dessus, de la plus ancienne à la plus récente
 function stackHTML(s, max) {
   const o = overlays(s); if (!o.length) return "";
@@ -712,7 +729,7 @@ function pinEl(s) {
   const el = document.createElement("div");
   el.className = "pin" + (stateOf(s) === "off" ? " off" : "");
   const n = overlays(s).length;
-  el.innerHTML = `<img src="${blobUrl(s, "thumb")}" alt="">${n ? `<span class="n">${n}</span>` : ""}`;
+  el.innerHTML = `<img src="${blobUrl(s, "thumb")}" alt="">${stateOf(s) === "na" ? '<span class="q">?</span>' : n ? `<span class="n">${n}</span>` : ""}`;
   el.addEventListener("click", e => { e.stopPropagation(); if (!covered(el)) openDetail(s.id); });
   return el;
 }
@@ -809,7 +826,7 @@ let countryFilter = null, query = "", stateFilter = null;
 const norm = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 function searchText(s) {
   const d = new Date(s.takenAt), p = s.place || {};
-  return norm([p.district, p.city, p.country, p.cc, s.note, ST_LABEL[stateOf(s)],
+  return norm([p.district, p.city, p.country, p.cc, s.note, ST_LABEL[stateOf(s)], isStale(s) ? ST_LABEL.stale : "",
     ...hist(s).map(e => [EV[e.type].label, e.by, e.note].join(" ")),
     d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }),
     d.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })].join(" "));
@@ -821,14 +838,15 @@ function matches(s) {
   return words.every(w => t.includes(w));
 }
 function renderGallery() {
-  const counts = { ok: 0, over: 0, off: 0 };
-  for (const s of stickers) counts[stateOf(s)]++;
+  const counts = stateCounts();
   if (stateFilter && !counts[stateFilter]) stateFilter = null;
-  $("#seg").hidden = !stickers.some(s => hist(s).length);
+  $("#seg").hidden = !stickers.some(s => hist(s).length) && !counts.stale;
   $("#seg").innerHTML = `<button class="${stateFilter ? "" : "on"}" data-st="">Tous états</button>` +
-    ["ok", "over", "off"].filter(k => counts[k]).map(k =>
+    [...STATES, "stale"].filter(k => counts[k]).map(k =>
       `<button class="${stateFilter === k ? "on" : ""}" data-st="${k}"><span class="sdot ${k}"></span>${ST_LABEL[k]} (${counts[k]})</button>`).join("");
-  const found = stickers.filter(s => matches(s) && (!stateFilter || stateOf(s) === stateFilter));
+  const on = $("#seg .on"); if (on) $("#seg").scrollLeft = on.offsetLeft - $("#seg").offsetLeft - 8;
+  const inState = s => !stateFilter || (stateFilter === "stale" ? isStale(s) : stateOf(s) === stateFilter);
+  const found = stickers.filter(s => matches(s) && inState(s));
   const byCountry = {};
   for (const s of found) {
     const k = s.place?.cc || "?";
@@ -858,7 +876,7 @@ $("#q-clear").onclick = () => { query = $("#q").value = ""; renderGallery(); $("
 // Carte photo : photo d'origine + mini-vignettes des surstickers en bas à droite
 function cardHTML(s, key, cap, attrs = "") {
   const st = stackHTML(s, 2);
-  return `<button class="card${stateOf(s) === "off" ? " off" : ""}" data-id="${s.id}" ${attrs}><img src="${blobUrl(s, key)}" alt="" loading="lazy"><span class="cap">${cap}</span>${st ? `<span class="stack">${st}</span>` : ""}</button>`;
+  return `<button class="card${stateOf(s) === "off" ? " off" : ""}" data-id="${s.id}" ${attrs}><img src="${blobUrl(s, key)}" alt="" loading="lazy"><span class="cap">${cap}</span>${st ? `<span class="stack">${st}</span>` : ""}${stateOf(s) === "na" ? '<span class="q">?</span>' : ""}</button>`;
 }
 $("#seg").onclick = e => { const b = e.target.closest("button"); if (!b) return; stateFilter = b.dataset.st || null; renderGallery(); };
 $("#chips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; countryFilter = b.dataset.cc || null; renderGallery(); };
@@ -934,14 +952,21 @@ function renderHome() {
         <div class="v">${far ? where(far.s) : "Chez toi ?"}</div>
         <div class="s">${far ? `à ${fmtKm(far.d)} de chez toi` : "Touche pour indiquer où tu habites"}</div>
       </button>
-      ${stickers.some(s => hist(s).length) ? (() => {
-        const c = { ok: 0, over: 0, off: 0 }; stickers.forEach(s => c[stateOf(s)]++);
+      ${(() => {
+        const c = stateCounts();
+        if (!stickers.some(s => hist(s).length) && !c.stale) return "";
         const pl = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
+        const subis = stickers.reduce((t, s) => t + hist(s).filter(e => e.type === "over").length, 0);
+        const parts = [`<span class="sdot ok"></span> ${c.ok} en place`];
+        if (c.over) parts.push(`<span class="sdot over"></span> ${pl(c.over, "surstické")}`);
+        if (c.off) parts.push(`<span class="sdot off"></span> ${pl(c.off, "décollé")}`);
+        if (c.na) parts.push(`<span class="sdot na"></span> ${c.na} inaccessible${c.na > 1 ? "s" : ""}`);
+        const sub = [subis ? `${pl(subis, "surstick")} subi${subis > 1 ? "s" : ""} au total` : "", c.stale ? `<b style="color:var(--text)">${c.stale} à revérifier</b> (pas vu${c.stale > 1 ? "s" : ""} depuis 6 mois) →` : ""].filter(Boolean).join(" · ");
         return `<button class="stat wide" data-act="states">
         <div class="k">${ic("layers")}État de mes stickers</div>
-        <div class="v" style="font-size:15px;white-space:normal"><span class="sdot ok"></span> ${c.ok} en place · <span class="sdot over"></span> ${pl(c.over, "surstické")} · <span class="sdot off"></span> ${pl(c.off, "décollé")}</div>
-        <div class="s">${pl(stickers.reduce((t, s) => t + hist(s).filter(e => e.type === "over").length, 0), "surstick")} subi${stickers.reduce((t, s) => t + hist(s).filter(e => e.type === "over").length, 0) > 1 ? "s" : ""} au total</div>
-      </button>`; })() : ""}
+        <div class="v" style="font-size:15px;white-space:normal">${parts.join(" · ")}</div>
+        ${sub ? `<div class="s">${sub}</div>` : ""}
+      </button>`; })()}
       <div class="stat wide">
         <div class="k">${ic("calendar")}Je colle depuis le</div>
         <div class="v">${fmtDate(first.takenAt)}</div>
@@ -958,7 +983,7 @@ $("#view-home").onclick = e => {
   if (act === "add") openSheet("#sh-choice");
   else if (act === "backup") exportBackup();
   else if (act === "sticker") openDetail(b.dataset.id);
-  else if (act === "states") showView("gallery");
+  else if (act === "states") { stateFilter = stateCounts().stale ? "stale" : null; showView("gallery"); renderGallery(); }
   else if (act === "city" && topCity) showView("map", () => fitBoundsOf(topCity.list, 16));
   else if (act === "far") far ? openDetail(far.s.id) : $("#nav-settings").click();
 };
@@ -1132,13 +1157,14 @@ function openDetail(id) {
 }
 function renderDetailState(s) {
   const st = stateOf(s), h = hist(s), last = h[h.length - 1];
-  $("#d-state").innerHTML = `<span class="state-pill"><span class="sdot ${st}"></span>${ST_LABEL[st]}${last ? ` <span style="font-weight:400;color:var(--muted)">· vu ${ago(last.date)}</span>` : ""}</span>`;
+  const extra = isStale(s) ? `· à revérifier, pas vu depuis ${monthsAgo(lastSeen(s))} mois` : last ? `· ${st === "na" ? "noté" : "vu"} ${ago(last.date)}` : "";
+  $("#d-state").innerHTML = `<span class="state-pill"><span class="sdot ${st}"></span>${ST_LABEL[st]}${extra ? ` <span style="font-weight:400;color:var(--muted)">${extra}</span>` : ""}</span>`;
   const sh = stackHTML(s, 3);
   $("#d-stack").hidden = !sh; $("#d-stack").innerHTML = sh;
   // Frise : du plus récent au premier sticker (le mien)
   const row = (th, title, sub, del) => `<div class="ev">${th}<div class="tx">${title}<small>${sub}</small></div>${del}</div>`;
   $("#d-hist").innerHTML = [...h].reverse().map(e => row(
-    e.thumb ? `<button class="th" data-view-ev="${e.id}"><img src="${blobUrl(e, "thumb")}" alt=""></button>` : `<span class="th">${ic(e.type === "off" ? "off" : "check")}</span>`,
+    e.thumb ? `<button class="th" data-view-ev="${e.id}"><img src="${blobUrl(e, "thumb")}" alt=""></button>` : `<span class="th">${ic({ off: "off", na: "help" }[e.type] || "check")}</span>`,
     esc(EV[e.type].label) + (e.by ? ` par ${esc(e.by)}` : ""),
     fmtDate(e.date) + (e.note ? ` · ${esc(e.note)}` : ""),
     `<button class="del" data-del-ev="${e.id}" aria-label="Supprimer cette étape">${ic("trash")}</button>`
@@ -1172,11 +1198,15 @@ document.querySelector(".state-btns").onclick = async e => {
     return toast(type === "ok" ? "Noté : toujours là" : "Noté : décollé");
   }
   evDraft = { id: uid(), type };
-  $("#ev-title").textContent = type === "over" ? "Surstické" : "Je resticke par-dessus";
-  $("#ev-hint").textContent = type === "over"
-    ? "Prends en photo le sticker collé par-dessus le tien. Il s'ajoute à l'historique, ta photo d'origine reste la photo principale."
-    : "Prends en photo ton nouveau sticker. Il s'ajoute à l'historique de cet emplacement.";
+  $("#ev-title").textContent = { over: "Surstické", mine: "Je resticke par-dessus", na: "Inaccessible" }[type];
+  $("#ev-hint").textContent = {
+    over: "Prends en photo le sticker collé par-dessus le tien. Il s'ajoute à l'historique, ta photo d'origine reste la photo principale.",
+    mine: "Prends en photo ton nouveau sticker. Il s'ajoute à l'historique de cet emplacement.",
+    na: "Tu n'as plus accès à ce sticker, donc tu ne sais pas s'il est toujours là. Si tu y retournes un jour, un nouveau passage remplacera cet état."
+  }[type];
   $("#ev-by-wrap").hidden = type !== "over";
+  $("#ev-photo-row").hidden = type === "na";
+  $("#ev-note").placeholder = type === "na" ? "Ex : tribune fermée au public, zone interdite…" : "";
   $("#ev-by").value = ""; $("#ev-note").value = "";
   $("#ev-date").value = toLocalInput(new Date());
   $("#ev-preview").hidden = true; $("#ev-preview").removeAttribute("src");
@@ -1207,7 +1237,7 @@ $("#ev-save").onclick = async () => {
   if (d.photo) { ev.photo = d.photo; ev.thumb = d.thumb; }
   try { await addEvent(current, ev); } catch (err) { return toast("Erreur d'enregistrement : " + err.message); }
   evDraft = null; closeSheet("#sh-event");
-  toast(d.type === "over" ? "Surstick ajouté à l'historique" : "Restick ajouté à l'historique");
+  toast({ over: "Surstick ajouté à l'historique", mine: "Restick ajouté à l'historique", na: "Noté : inaccessible" }[d.type]);
 };
 $("#d-note").onchange = async () => { if (!current) return; current.note = $("#d-note").value.trim(); await dbPut(current); };
 $("#d-onmap").onclick = () => {

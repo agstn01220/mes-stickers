@@ -9,7 +9,7 @@ Stickers worldwide. Petite app perso et open source pour garder la trace de tous
 - 🟥 **Pays visités coloriés** en rouge sur le globe
 - 🔔 **Rappel de sauvegarde** sur l'accueil quand la dernière date de plus d'un mois ou que 5 nouveaux stickers ne sont pas sauvegardés
 - 🖼️ **Galerie** triée par date, filtrable par pays (🇫🇷 🇰🇭 🇪🇸…) et par état, avec **recherche** (ville, quartier, pays, note, mois)
-- 🧱 **Suivi des stickers** : toujours là, surstické, décollé ou restické. Chaque surstick est pris en photo et s'ajoute à l'historique de l'emplacement ; la photo d'origine reste la principale, avec les surstickers en mini-vignettes en bas à droite
+- 🧱 **Suivi des stickers** : toujours là, surstické, décollé, restické ou inaccessible (plus d'accès pour vérifier). Un sticker sans nouvelles depuis 6 mois est marqué « à revérifier ». Chaque surstick est pris en photo et s'ajoute à l'historique de l'emplacement ; la photo d'origine reste la principale, avec les surstickers en mini-vignettes en bas à droite
 - 🏙️ Ville et pays trouvés automatiquement (OpenStreetMap)
 - ✏️ Position corrigeable à la main (toucher la carte, glisser le point, ou chercher un lieu)
 - 💾 Sauvegarde / restauration en un fichier
