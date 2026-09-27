@@ -72,6 +72,41 @@
   .card img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .card .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 18px 8px 6px; font-size: 12px; text-align: left;
     background: linear-gradient(transparent, rgba(0,0,0,.8)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card.off img { filter: grayscale(1) brightness(.6); }
+  .card > .stack { bottom: 28px; }
+  /* Mini-vignettes des surstickers, empilées en bas à droite de la photo d'origine */
+  .stack { position: absolute; right: 6px; bottom: 6px; display: flex; align-items: center; pointer-events: none; }
+  .stack img { width: 22px; height: 22px; object-fit: cover; border-radius: 5px; border: 1.5px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.6);
+    margin-left: -9px; background: #333; display: block; }
+  .stack img:first-child { margin-left: 0; }
+  .stack b { margin-left: 3px; font-size: 11px; font-weight: 800; background: rgba(0,0,0,.75); border-radius: 999px; padding: 1px 5px; }
+  .photo-wrap { position: relative; }
+  .photo-wrap .stack { right: 10px; bottom: 10px; pointer-events: auto; cursor: pointer; }
+  .photo-wrap .stack img { width: 38px; height: 38px; border-radius: 8px; border-width: 2px; margin-left: -14px; }
+  .photo-wrap .stack img:first-child { margin-left: 0; }
+  .photo-wrap .stack b { font-size: 13px; padding: 2px 7px; }
+  .seg { display: flex; gap: 6px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none; }
+  .seg::-webkit-scrollbar { display: none; }
+  .seg[hidden] { display: none; }
+  .seg button { flex: none; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 13px; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+  .seg button.on { color: var(--text); border-color: var(--text); }
+  .sdot { width: 8px; height: 8px; border-radius: 50%; flex: none; display: inline-block; }
+  .sdot.ok { background: var(--ok); } .sdot.over { background: var(--accent-2); } .sdot.off { background: #7d8594; }
+  .state-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; background: var(--panel-2); margin-top: 6px; }
+  .state-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .state-btns .btn { padding: 10px 8px; font-size: 14px; }
+  .state-btns .btn .ic { margin-right: .4em; }
+  .hist { display: grid; gap: 2px; }
+  .hist .ev { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .hist .ev:last-child { border-bottom: 0; }
+  .hist .th { width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex: none; border: 0; padding: 0; background: var(--panel-2); display: grid; place-items: center; color: var(--muted); }
+  .hist .th img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; }
+  .hist .tx { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; }
+  .hist .tx small { display: block; font-weight: 400; color: var(--muted); font-size: 12.5px; }
+  .hist .del { background: none; border: 0; color: var(--muted); padding: 8px; }
+  .pin .n { position: absolute; top: -4px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--accent-2); color: #111;
+    font-size: 11px; font-weight: 800; display: grid; place-items: center; border: 2px solid #fff; }
+  .pin.off img { filter: grayscale(1) brightness(.7); }
   .empty { color: var(--muted); text-align: center; padding: 48px 16px; }
 
   nav { display: flex; align-items: center; justify-content: space-around; background: var(--panel);
@@ -198,6 +233,7 @@
     <div class="search"><span data-ic="search"></span>
       <input type="search" id="q" placeholder="Ville, quartier, pays, note, mois…" autocomplete="off" enterkeyhint="search">
       <button id="q-clear" aria-label="Effacer la recherche" hidden><span data-ic="x"></span></button></div>
+    <div class="seg" id="seg"></div>
     <div id="chips"></div>
     <div id="q-count" hidden></div>
     <div id="grid"></div>
@@ -255,14 +291,24 @@
 <div class="sheet-wrap" id="sh-detail">
   <div class="sheet">
     <div class="sheet-head"><h2 id="d-title">Sticker</h2><button class="icon-btn" data-close aria-label="Fermer"><span data-ic="x"></span></button></div>
-    <img class="big zoomable" id="d-img" alt="" title="Toucher pour zoomer">
+    <div class="photo-wrap"><img class="big zoomable" id="d-img" alt="" title="Toucher pour zoomer"><div class="stack" id="d-stack" hidden></div></div>
     <div class="meta">
       <h3 id="d-place"></h3>
       <p id="d-date"></p>
       <p id="d-coords"></p>
+      <div id="d-state"></div>
     </div>
     <label class="f" for="d-note">Note</label>
     <textarea id="d-note"></textarea>
+    <h3 class="sub">Je repasse devant</h3>
+    <div class="state-btns">
+      <button class="btn" data-ev="ok"><span data-ic="check"></span>Toujours là</button>
+      <button class="btn" data-ev="over"><span data-ic="layers"></span>Surstické</button>
+      <button class="btn" data-ev="off"><span data-ic="off"></span>Décollé</button>
+      <button class="btn" data-ev="mine"><span data-ic="plus"></span>Je resticke</button>
+    </div>
+    <h3 class="sub" id="d-hist-title">Historique</h3>
+    <div class="hist" id="d-hist"></div>
     <div class="row" style="margin-top:12px">
       <button class="btn" id="d-onmap"><span data-ic="globe"></span>Sur la carte</button>
       <a class="btn" id="d-maps" target="_blank" rel="noopener"><span data-ic="nav"></span>Itinéraire</a>
@@ -272,6 +318,30 @@
     </div>
   </div>
 </div>
+
+<!-- Nouvelle étape : surstick / restick -->
+<div class="sheet-wrap" id="sh-event">
+  <div class="sheet">
+    <div class="sheet-head"><h2 id="ev-title">Surstické</h2><button class="icon-btn" data-close aria-label="Fermer"><span data-ic="x"></span></button></div>
+    <p class="hint" style="margin-top:0" id="ev-hint"></p>
+    <img class="preview" id="ev-preview" alt="" hidden>
+    <div class="row">
+      <button class="btn" id="ev-camera"><span data-ic="camera"></span>Photo</button>
+      <button class="btn" id="ev-library"><span data-ic="image"></span>Mes photos</button>
+    </div>
+    <div id="ev-by-wrap">
+      <label class="f" for="ev-by">Surstické par (club, groupe…) — optionnel</label>
+      <input type="text" id="ev-by" placeholder="Ex : Ultras Lyon" autocomplete="off">
+    </div>
+    <label class="f" for="ev-date">Date</label>
+    <input type="datetime-local" id="ev-date">
+    <label class="f" for="ev-note">Note (optionnel)</label>
+    <textarea id="ev-note"></textarea>
+    <div class="row" style="margin-top:14px"><button class="btn primary" id="ev-save">Enregistrer</button></div>
+  </div>
+</div>
+<input type="file" id="in-ev-camera" accept="image/*" capture="environment" hidden>
+<input type="file" id="in-ev-library" accept="image/*" hidden>
 
 <!-- Réglages -->
 <div class="sheet-wrap" id="sh-menu">
@@ -320,6 +390,7 @@ const ICONS = {
   sliders: '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
+  off: '<circle cx="12" cy="12" r="9"/><path d="m5.7 5.7 12.6 12.6"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
   camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-9 9"/>',
@@ -350,6 +421,23 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 function placeLabel(s) {
   if (!s.place) return "Lieu inconnu";
   return [s.place.district, s.place.city, s.place.country].filter(Boolean).join(", ") || "Lieu inconnu";
+}
+
+// État d'un sticker : historique des passages (toujours là, surstické, décollé, restické par moi)
+const EV = {
+  ok:   { label: "Toujours là", st: "ok" },
+  over: { label: "Surstické", st: "over" },
+  off:  { label: "Décollé", st: "off" },
+  mine: { label: "Restické par moi", st: "ok" }
+};
+const ST_LABEL = { ok: "Toujours là", over: "Surstické", off: "Décollé" };
+const hist = s => s.history || [];
+const stateOf = s => { const h = hist(s); return h.length ? EV[h[h.length - 1].type].st : "ok"; };
+const overlays = s => hist(s).filter(e => e.thumb); // photos collées par-dessus, de la plus ancienne à la plus récente
+function stackHTML(s, max) {
+  const o = overlays(s); if (!o.length) return "";
+  const shown = o.slice(-max);
+  return shown.map(e => `<img src="${blobUrl(e, "thumb")}" alt="">`).join("") + (o.length > max ? `<b>+${o.length - max}</b>` : "");
 }
 
 // ---------- Base de données locale (IndexedDB) ----------
@@ -514,6 +602,8 @@ function blobUrl(s, key) {
 }
 function forgetUrls(id) {
   for (const key of ["photo", "thumb"]) { const k = id + key; if (urlCache.has(k)) { URL.revokeObjectURL(urlCache.get(k)); urlCache.delete(k); } }
+  const s = stickers.find(x => x.id === id);
+  if (s) for (const e of hist(s)) if (e.id !== id) forgetUrls(e.id);
 }
 
 // ---------- Carte principale : globe 3D ----------
@@ -620,8 +710,9 @@ map.on("render", syncTouchable);
 const covered = el => el.style.opacity === "0";
 function pinEl(s) {
   const el = document.createElement("div");
-  el.className = "pin";
-  el.innerHTML = `<img src="${blobUrl(s, "thumb")}" alt="">`;
+  el.className = "pin" + (stateOf(s) === "off" ? " off" : "");
+  const n = overlays(s).length;
+  el.innerHTML = `<img src="${blobUrl(s, "thumb")}" alt="">${n ? `<span class="n">${n}</span>` : ""}`;
   el.addEventListener("click", e => { e.stopPropagation(); if (!covered(el)) openDetail(s.id); });
   return el;
 }
@@ -713,12 +804,13 @@ function spinLoop(ts) {
 requestAnimationFrame(spinLoop);
 
 // ---------- Galerie ----------
-let countryFilter = null, query = "";
+let countryFilter = null, query = "", stateFilter = null;
 // Recherche : sans accents ni majuscules, tous les mots doivent correspondre
 const norm = t => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 function searchText(s) {
   const d = new Date(s.takenAt), p = s.place || {};
-  return norm([p.district, p.city, p.country, p.cc, s.note,
+  return norm([p.district, p.city, p.country, p.cc, s.note, ST_LABEL[stateOf(s)],
+    ...hist(s).map(e => [EV[e.type].label, e.by, e.note].join(" ")),
     d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" }),
     d.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })].join(" "));
 }
@@ -729,7 +821,14 @@ function matches(s) {
   return words.every(w => t.includes(w));
 }
 function renderGallery() {
-  const found = stickers.filter(matches);
+  const counts = { ok: 0, over: 0, off: 0 };
+  for (const s of stickers) counts[stateOf(s)]++;
+  if (stateFilter && !counts[stateFilter]) stateFilter = null;
+  $("#seg").hidden = !stickers.some(s => hist(s).length);
+  $("#seg").innerHTML = `<button class="${stateFilter ? "" : "on"}" data-st="">Tous états</button>` +
+    ["ok", "over", "off"].filter(k => counts[k]).map(k =>
+      `<button class="${stateFilter === k ? "on" : ""}" data-st="${k}"><span class="sdot ${k}"></span>${ST_LABEL[k]} (${counts[k]})</button>`).join("");
+  const found = stickers.filter(s => matches(s) && (!stateFilter || stateOf(s) === stateFilter));
   const byCountry = {};
   for (const s of found) {
     const k = s.place?.cc || "?";
@@ -744,20 +843,24 @@ function renderGallery() {
   const list = found
     .filter(s => !countryFilter || (s.place?.cc || "?") === countryFilter)
     .sort((a, b) => new Date(b.takenAt) - new Date(a.takenAt));
-  $("#grid").innerHTML = list.length ? list.map(s =>
-    `<button class="card" data-id="${s.id}"><img src="${blobUrl(s, "thumb")}" alt="" loading="lazy"><span class="cap">${s.place ? flagEl(s.place.cc) + esc(s.place.city || s.place.country) : "…"}</span></button>`
-  ).join("") : "";
+  $("#grid").innerHTML = list.length ? list.map(s => cardHTML(s, "thumb", s.place ? flagEl(s.place.cc) + esc(s.place.city || s.place.country) : "…")).join("") : "";
   const q = query.trim();
   $("#q-clear").hidden = !query;
   $("#q-count").hidden = !q || !list.length;
   $("#q-count").textContent = `${list.length} résultat${list.length > 1 ? "s" : ""}`;
-  if (q && !list.length) $("#grid").innerHTML = `<div class="empty" style="grid-column:1/-1">Aucun sticker pour « ${esc(q)} ».</div>`;
+  if (!list.length && stickers.length) $("#grid").innerHTML = `<div class="empty" style="grid-column:1/-1">${q ? `Aucun sticker pour « ${esc(q)} ».` : "Aucun sticker ici."}</div>`;
   if (!stickers.length) $("#grid").innerHTML = `<div class="empty" style="grid-column:1/-1">Ta galerie est vide.<br>Colle un sticker et prends-le en photo avec le bouton +.</div>`;
   $(".search").hidden = !stickers.length;
 }
 $("#q").oninput = () => { query = $("#q").value; renderGallery(); };
 $("#q").onkeydown = e => { if (e.key === "Enter") $("#q").blur(); };
 $("#q-clear").onclick = () => { query = $("#q").value = ""; renderGallery(); $("#q").focus(); };
+// Carte photo : photo d'origine + mini-vignettes des surstickers en bas à droite
+function cardHTML(s, key, cap, attrs = "") {
+  const st = stackHTML(s, 2);
+  return `<button class="card${stateOf(s) === "off" ? " off" : ""}" data-id="${s.id}" ${attrs}><img src="${blobUrl(s, key)}" alt="" loading="lazy"><span class="cap">${cap}</span>${st ? `<span class="stack">${st}</span>` : ""}</button>`;
+}
+$("#seg").onclick = e => { const b = e.target.closest("button"); if (!b) return; stateFilter = b.dataset.st || null; renderGallery(); };
 $("#chips").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; countryFilter = b.dataset.cc || null; renderGallery(); };
 $("#grid").onclick = e => { const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id); };
 
@@ -831,6 +934,14 @@ function renderHome() {
         <div class="v">${far ? where(far.s) : "Chez toi ?"}</div>
         <div class="s">${far ? `à ${fmtKm(far.d)} de chez toi` : "Touche pour indiquer où tu habites"}</div>
       </button>
+      ${stickers.some(s => hist(s).length) ? (() => {
+        const c = { ok: 0, over: 0, off: 0 }; stickers.forEach(s => c[stateOf(s)]++);
+        const pl = (n, w) => `${n} ${w}${n > 1 ? "s" : ""}`;
+        return `<button class="stat wide" data-act="states">
+        <div class="k">${ic("layers")}État de mes stickers</div>
+        <div class="v" style="font-size:15px;white-space:normal"><span class="sdot ok"></span> ${c.ok} en place · <span class="sdot over"></span> ${pl(c.over, "surstické")} · <span class="sdot off"></span> ${pl(c.off, "décollé")}</div>
+        <div class="s">${pl(stickers.reduce((t, s) => t + hist(s).filter(e => e.type === "over").length, 0), "surstick")} subi${stickers.reduce((t, s) => t + hist(s).filter(e => e.type === "over").length, 0) > 1 ? "s" : ""} au total</div>
+      </button>`; })() : ""}
       <div class="stat wide">
         <div class="k">${ic("calendar")}Je colle depuis le</div>
         <div class="v">${fmtDate(first.takenAt)}</div>
@@ -838,8 +949,7 @@ function renderHome() {
       </div>
     </div>
     <div class="section-title"><div>${ic("star")}Les stickers du jour</div><span>changent chaque jour</span></div>
-    <div class="daily">${dailyPicks(3).map(s =>
-      `<button class="card" data-act="sticker" data-id="${s.id}"><img src="${blobUrl(s, "photo")}" alt="" loading="lazy"><span class="cap">${where(s)}</span></button>`).join("")}
+    <div class="daily">${dailyPicks(3).map(s => cardHTML(s, "photo", where(s), 'data-act="sticker"')).join("")}
     </div>`;
 }
 $("#view-home").onclick = e => {
@@ -848,6 +958,7 @@ $("#view-home").onclick = e => {
   if (act === "add") openSheet("#sh-choice");
   else if (act === "backup") exportBackup();
   else if (act === "sticker") openDetail(b.dataset.id);
+  else if (act === "states") showView("gallery");
   else if (act === "city" && topCity) showView("map", () => fitBoundsOf(topCity.list, 16));
   else if (act === "far") far ? openDetail(far.s.id) : $("#nav-settings").click();
 };
@@ -1015,9 +1126,89 @@ function openDetail(id) {
   $("#d-date").innerHTML = ic("calendar") + fmtDateTime(s.takenAt);
   $("#d-coords").innerHTML = `${ic("pin")}${s.lat.toFixed(6)}, ${s.lng.toFixed(6)}${s.accuracy ? ` (±${Math.round(s.accuracy)} m)` : ""}`;
   $("#d-note").value = s.note || "";
+  renderDetailState(s);
   $("#d-maps").href = `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`;
   openSheet("#sh-detail");
 }
+function renderDetailState(s) {
+  const st = stateOf(s), h = hist(s), last = h[h.length - 1];
+  $("#d-state").innerHTML = `<span class="state-pill"><span class="sdot ${st}"></span>${ST_LABEL[st]}${last ? ` <span style="font-weight:400;color:var(--muted)">· vu ${ago(last.date)}</span>` : ""}</span>`;
+  const sh = stackHTML(s, 3);
+  $("#d-stack").hidden = !sh; $("#d-stack").innerHTML = sh;
+  // Frise : du plus récent au premier sticker (le mien)
+  const row = (th, title, sub, del) => `<div class="ev">${th}<div class="tx">${title}<small>${sub}</small></div>${del}</div>`;
+  $("#d-hist").innerHTML = [...h].reverse().map(e => row(
+    e.thumb ? `<button class="th" data-view-ev="${e.id}"><img src="${blobUrl(e, "thumb")}" alt=""></button>` : `<span class="th">${ic(e.type === "off" ? "off" : "check")}</span>`,
+    esc(EV[e.type].label) + (e.by ? ` par ${esc(e.by)}` : ""),
+    fmtDate(e.date) + (e.note ? ` · ${esc(e.note)}` : ""),
+    `<button class="del" data-del-ev="${e.id}" aria-label="Supprimer cette étape">${ic("trash")}</button>`
+  )).join("") + row(`<button class="th" data-view-ev=""><img src="${blobUrl(s, "thumb")}" alt=""></button>`, "Premier sticker", fmtDate(s.takenAt), "");
+}
+$("#d-stack").onclick = () => $("#d-hist-title").scrollIntoView({ behavior: "smooth", block: "start" });
+$("#d-hist").onclick = async e => {
+  const v = e.target.closest("[data-view-ev]"), d = e.target.closest("[data-del-ev]");
+  if (!current) return;
+  if (v) { const ev = hist(current).find(x => x.id === v.dataset.viewEv); openViewer(blobUrl(ev || current, "photo")); }
+  if (d && confirm("Supprimer cette étape de l'historique ?")) {
+    forgetUrls(d.dataset.delEv);
+    current.history = hist(current).filter(x => x.id !== d.dataset.delEv);
+    current.updatedAt = new Date().toISOString();
+    await dbPut(current); renderAll(); renderDetailState(current);
+  }
+};
+async function addEvent(s, ev) {
+  s.history = [...hist(s), ev].sort((a, b) => new Date(a.date) - new Date(b.date));
+  s.updatedAt = new Date().toISOString();
+  await dbPut(s);
+  renderAll(); if (current === s) renderDetailState(s);
+}
+// Toujours là / décollé : un simple passage daté. Surstické / restické : on reprend une photo.
+let evDraft = null;
+document.querySelector(".state-btns").onclick = async e => {
+  const b = e.target.closest("[data-ev]"); if (!b || !current) return;
+  const type = b.dataset.ev;
+  if (type === "ok" || type === "off") {
+    await addEvent(current, { id: uid(), type, date: new Date().toISOString() });
+    return toast(type === "ok" ? "Noté : toujours là" : "Noté : décollé");
+  }
+  evDraft = { id: uid(), type };
+  $("#ev-title").textContent = type === "over" ? "Surstické" : "Je resticke par-dessus";
+  $("#ev-hint").textContent = type === "over"
+    ? "Prends en photo le sticker collé par-dessus le tien. Il s'ajoute à l'historique, ta photo d'origine reste la photo principale."
+    : "Prends en photo ton nouveau sticker. Il s'ajoute à l'historique de cet emplacement.";
+  $("#ev-by-wrap").hidden = type !== "over";
+  $("#ev-by").value = ""; $("#ev-note").value = "";
+  $("#ev-date").value = toLocalInput(new Date());
+  $("#ev-preview").hidden = true; $("#ev-preview").removeAttribute("src");
+  openSheet("#sh-event");
+};
+$("#ev-camera").onclick = () => $("#in-ev-camera").click();
+$("#ev-library").onclick = () => $("#in-ev-library").click();
+const evFile = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f || !evDraft) return;
+  const d = evDraft;
+  try {
+    const exif = await readExif(f);
+    if (exif?.date) $("#ev-date").value = toLocalInput(exif.date);
+    const img = await loadImage(f);
+    [d.photo, d.thumb] = await Promise.all([toJpeg(img, 1600, 0.85), toJpeg(img, 320, 0.8, true)]);
+    if (evDraft !== d) return;
+    $("#ev-preview").src = URL.createObjectURL(d.photo); $("#ev-preview").hidden = false;
+  } catch (err) { toast("Impossible de lire cette image"); }
+};
+$("#in-ev-camera").onchange = evFile;
+$("#in-ev-library").onchange = evFile;
+$("#ev-save").onclick = async () => {
+  if (!evDraft || !current) return;
+  const d = evDraft, ev = { id: d.id, type: d.type, date: new Date($("#ev-date").value || Date.now()).toISOString() };
+  const by = $("#ev-by").value.trim(), note = $("#ev-note").value.trim();
+  if (d.type === "over" && by) ev.by = by;
+  if (note) ev.note = note;
+  if (d.photo) { ev.photo = d.photo; ev.thumb = d.thumb; }
+  try { await addEvent(current, ev); } catch (err) { return toast("Erreur d'enregistrement : " + err.message); }
+  evDraft = null; closeSheet("#sh-event");
+  toast(d.type === "over" ? "Surstick ajouté à l'historique" : "Restick ajouté à l'historique");
+};
 $("#d-note").onchange = async () => { if (!current) return; current.note = $("#d-note").value.trim(); await dbPut(current); };
 $("#d-onmap").onclick = () => {
   if (!current) return;
@@ -1138,7 +1329,7 @@ function ago(iso) {
   if (d < 60) return `il y a ${d} jours`;
   return `il y a ${Math.floor(d / 30)} mois`;
 }
-const unsavedCount = () => lastBackup ? stickers.filter(s => new Date(s.createdAt) > new Date(lastBackup)).length : stickers.length;
+const unsavedCount = () => lastBackup ? stickers.filter(s => new Date(s.updatedAt || s.createdAt) > new Date(lastBackup)).length : stickers.length;
 function backupStatus() {
   if (!stickers.length) return null;
   const n = unsavedCount();
@@ -1165,7 +1356,8 @@ async function exportBackup() {
   if (!stickers.length) return toast("Rien à exporter pour l'instant");
   toast("Préparation de la sauvegarde…");
   const out = [];
-  for (const s of stickers) out.push({ ...s, photo: await blobToDataURL(s.photo), thumb: await blobToDataURL(s.thumb) });
+  const pack = async o => ({ ...o, photo: o.photo && await blobToDataURL(o.photo), thumb: o.thumb && await blobToDataURL(o.thumb) });
+  for (const s of stickers) out.push({ ...(await pack(s)), history: await Promise.all(hist(s).map(pack)) });
   const name = `no-borders-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
   const blob = new Blob([JSON.stringify({ app: "mes-stickers", version: 1, exportedAt: new Date().toISOString(), home, stickers: out })], { type: "application/json" });
   const file = new File([blob], name, { type: "application/json" });
@@ -1186,7 +1378,9 @@ $("#in-backup").onchange = async e => {
     if (data.app !== "mes-stickers" || !Array.isArray(data.stickers)) throw new Error("Ce fichier n'est pas une sauvegarde de Mes Stickers.");
     let n = 0;
     for (const x of data.stickers) {
-      const s = { ...x, photo: await (await fetch(x.photo)).blob(), thumb: await (await fetch(x.thumb)).blob() };
+      const unpack = async o => ({ ...o, photo: o.photo ? await (await fetch(o.photo)).blob() : undefined, thumb: o.thumb ? await (await fetch(o.thumb)).blob() : undefined });
+      const s = { ...(await unpack(x)), history: await Promise.all((x.history || []).map(unpack)) };
+      for (const e of s.history) if (!e.photo) { delete e.photo; delete e.thumb; }
       await dbPut(s); forgetUrls(s.id);
       stickers = stickers.filter(o => o.id !== s.id); stickers.push(s); n++;
     }
