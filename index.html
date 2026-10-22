@@ -203,6 +203,7 @@
   #viewer[hidden] { display: none; }
   #viewer img { max-width: 100%; max-height: 100%; transform-origin: center; will-change: transform; pointer-events: none; }
   #viewer-close { position: absolute; top: calc(12px + var(--safe-t)); right: 12px; z-index: 1; }
+  #viewer-save { position: absolute; top: calc(12px + var(--safe-t)); left: 12px; z-index: 1; }
   #viewer-hint { position: absolute; bottom: calc(18px + var(--safe-b)); left: 50%; transform: translateX(-50%); font-size: 13px;
     color: #ccc; background: rgba(0,0,0,.6); padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
   .zoomable { cursor: zoom-in; }
@@ -275,6 +276,7 @@
   <div class="sheet">
     <div class="sheet-head"><h2>Ajouter le sticker</h2><button class="icon-btn" data-close aria-label="Fermer"><span data-ic="x"></span></button></div>
     <img class="preview" id="add-preview" alt="">
+    <button class="btn" id="add-roll" style="width:100%;margin-top:8px" hidden><span data-ic="download"></span>Enregistrer la photo dans Photos (qualité originale)</button>
     <div class="status" id="add-status"></div>
     <div class="minimap" id="add-map"></div>
     <p class="hint">Touche la carte ou déplace le point pour corriger l'emplacement.</p>
@@ -373,6 +375,7 @@
 <div id="viewer" hidden>
   <img id="viewer-img" alt="">
   <button class="icon-btn" id="viewer-close" aria-label="Fermer"><span data-ic="x"></span></button>
+  <button class="icon-btn" id="viewer-save" aria-label="Enregistrer dans Photos"><span data-ic="download"></span></button>
   <div id="viewer-hint">Pince ou double-tape pour zoomer</div>
 </div>
 
@@ -1062,7 +1065,8 @@ async function locateDraft(promise) {
 }
 
 async function startAdd(file, fromCamera) {
-  draft = { id: uid() };
+  draft = { id: uid(), orig: fromCamera ? file : null };
+  $("#add-roll").hidden = !fromCamera;
   if (addMarker) { addMarker.remove(); addMarker = null; }
   $("#add-save").disabled = true;
   $("#add-note").value = ""; $("#add-search").value = ""; $("#add-results").innerHTML = "";
@@ -1094,6 +1098,8 @@ async function startAdd(file, fromCamera) {
 }
 
 $("#add-locate").onclick = () => locateDraft(null);
+// Photo prise avec l'appareil : on peut la garder dans la pellicule, en pleine résolution
+$("#add-roll").onclick = () => { if (draft?.orig) savePhoto(draft.orig, draft.orig.name || "kolle.jpg"); };
 
 function attachSearch(input, results, onPick) {
   let t;
@@ -1174,7 +1180,7 @@ $("#d-stack").onclick = () => $("#d-hist-title").scrollIntoView({ behavior: "smo
 $("#d-hist").onclick = async e => {
   const v = e.target.closest("[data-view-ev]"), d = e.target.closest("[data-del-ev]");
   if (!current) return;
-  if (v) { const ev = hist(current).find(x => x.id === v.dataset.viewEv); openViewer(blobUrl(ev || current, "photo")); }
+  if (v) { const ev = hist(current).find(x => x.id === v.dataset.viewEv); openViewer(ev || current); }
   if (d && confirm("Supprimer cette étape de l'historique ?")) {
     forgetUrls(d.dataset.delEv);
     current.history = hist(current).filter(x => x.id !== d.dataset.delEv);
@@ -1273,18 +1279,21 @@ function vZoomAt(k, px, py) {
   if (V.s === 1) V.tx = V.ty = 0;
   vClamp(); vApply();
 }
-function openViewer(src) {
+let vItem = null; // sticker ou passage affiché (pour l'enregistrer)
+function openViewer(item) {
+  vItem = item;
   Object.assign(V, { s: 1, tx: 0, ty: 0 }); V.ptrs.clear();
-  vImg.src = src; vApply();
+  vImg.src = blobUrl(item, "photo"); vApply();
   viewer.hidden = false;
 }
 const closeViewer = () => { viewer.hidden = true; };
-$("#d-img").onclick = () => { if (current) openViewer(blobUrl(current, "photo")); };
+$("#d-img").onclick = () => { if (current) openViewer(current); };
 $("#viewer-close").onclick = e => { e.stopPropagation(); closeViewer(); };
+$("#viewer-save").onclick = e => { e.stopPropagation(); if (vItem) savePhoto(vItem.photo, `kolle-${vItem.id.slice(0, 8)}.jpg`); };
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !viewer.hidden) closeViewer(); });
 viewer.addEventListener("wheel", e => { e.preventDefault(); vZoomAt(Math.exp(-e.deltaY * 0.0025), e.clientX, e.clientY); }, { passive: false });
 viewer.addEventListener("pointerdown", e => {
-  if (e.target.closest("#viewer-close")) return;
+  if (e.target.closest("#viewer-close, #viewer-save")) return;
   try { viewer.setPointerCapture(e.pointerId); } catch (err) {}
   V.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
   if (V.ptrs.size === 2) {
@@ -1380,6 +1389,20 @@ async function markBackup(iso = new Date().toISOString()) {
   renderBackupInfo(); renderHome();
 }
 
+// Feuille de partage iOS (« Enregistrer l'image » → Photos, « Enregistrer dans Fichiers »…), sinon téléchargement.
+// Renvoie false si j'ai annulé.
+async function shareOrDownload(blob, name, title) {
+  const file = new File([blob], name, { type: blob.type });
+  if (navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title }); return true; }
+    catch (e) { if (e.name === "AbortError") return false; }
+  }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  return true;
+}
+const savePhoto = (blob, name) => shareOrDownload(blob, name, "Photo Kollé");
 const blobToDataURL = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
 $("#btn-export").onclick = () => exportBackup();
 async function exportBackup() {
@@ -1390,15 +1413,8 @@ async function exportBackup() {
   for (const s of stickers) out.push({ ...(await pack(s)), history: await Promise.all(hist(s).map(pack)) });
   const name = `kolle-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
   const blob = new Blob([JSON.stringify({ app: "mes-stickers", version: 1, exportedAt: new Date().toISOString(), home, stickers: out })], { type: "application/json" });
-  const file = new File([blob], name, { type: "application/json" });
-  if (navigator.canShare?.({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: "Sauvegarde stickers" }); await markBackup(); toast("Sauvegarde enregistrée"); return; }
-    catch (e) { if (e.name === "AbortError") return; }
-  }
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = name; a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-  await markBackup();
+  if (!(await shareOrDownload(blob, name, "Sauvegarde stickers"))) return;
+  await markBackup(); toast("Sauvegarde enregistrée");
 }
 $("#btn-import").onclick = () => $("#in-backup").click();
 $("#in-backup").onchange = async e => {
