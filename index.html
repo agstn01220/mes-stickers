@@ -82,6 +82,7 @@
   .stack img:first-child { margin-left: 0; }
   .stack b { margin-left: 3px; font-size: 11px; font-weight: 800; background: rgba(0,0,0,.75); border-radius: 999px; padding: 1px 5px; }
   .photo-wrap { position: relative; }
+  #d-save { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,.55); border-color: rgba(255,255,255,.3); color: #fff; }
   .photo-wrap .stack { right: 10px; bottom: 10px; pointer-events: auto; cursor: pointer; }
   .photo-wrap .stack img { width: 38px; height: 38px; border-radius: 8px; border-width: 2px; margin-left: -14px; }
   .photo-wrap .stack img:first-child { margin-left: 0; }
@@ -299,7 +300,8 @@
 <div class="sheet-wrap" id="sh-detail">
   <div class="sheet">
     <div class="sheet-head"><h2 id="d-title">Sticker</h2><button class="icon-btn" data-close aria-label="Fermer"><span data-ic="x"></span></button></div>
-    <div class="photo-wrap"><img class="big zoomable" id="d-img" alt="" title="Toucher pour zoomer"><div class="stack" id="d-stack" hidden></div></div>
+    <div class="photo-wrap"><img class="big zoomable" id="d-img" alt="" title="Toucher pour zoomer"><div class="stack" id="d-stack" hidden></div>
+      <button class="icon-btn" id="d-save" aria-label="Enregistrer dans Photos"><span data-ic="download"></span></button></div>
     <div class="meta">
       <h3 id="d-place"></h3>
       <p id="d-date"></p>
@@ -538,6 +540,8 @@ function loadImage(blob) {
     i.src = u;
   });
 }
+// Photo gardée en qualité d'origine : le fichier tel quel s'il est en JPEG, sinon converti (4096 px max : limite des canvas sur iPhone).
+const fullPhoto = (file, img) => file.type === "image/jpeg" ? Promise.resolve(file) : toJpeg(img, 4096, 0.92);
 function toJpeg(img, max, quality, square) {
   const w = img.naturalWidth, h = img.naturalHeight;
   const c = document.createElement("canvas"), ctx = c.getContext("2d");
@@ -1087,7 +1091,7 @@ async function startAdd(file, fromCamera) {
 
   try {
     const img = await loadImage(file);
-    const [photo, thumb] = await Promise.all([toJpeg(img, 1600, 0.85), toJpeg(img, 320, 0.8, true)]);
+    const [photo, thumb] = await Promise.all([fullPhoto(file, img), toJpeg(img, 320, 0.8, true)]);
     if (!draft) return;
     draft.photo = photo; draft.thumb = thumb;
     $("#add-preview").src = URL.createObjectURL(photo);
@@ -1227,7 +1231,7 @@ const evFile = async e => {
     const exif = await readExif(f);
     if (exif?.date) $("#ev-date").value = toLocalInput(exif.date);
     const img = await loadImage(f);
-    [d.photo, d.thumb] = await Promise.all([toJpeg(img, 1600, 0.85), toJpeg(img, 320, 0.8, true)]);
+    [d.photo, d.thumb] = await Promise.all([fullPhoto(f, img), toJpeg(img, 320, 0.8, true)]);
     if (evDraft !== d) return;
     $("#ev-preview").src = URL.createObjectURL(d.photo); $("#ev-preview").hidden = false;
   } catch (err) { toast("Impossible de lire cette image"); }
@@ -1288,6 +1292,7 @@ function openViewer(item) {
 }
 const closeViewer = () => { viewer.hidden = true; };
 $("#d-img").onclick = () => { if (current) openViewer(current); };
+$("#d-save").onclick = () => { if (current) savePhoto(current.photo, `kolle-${current.id.slice(0, 8)}.jpg`); };
 $("#viewer-close").onclick = e => { e.stopPropagation(); closeViewer(); };
 $("#viewer-save").onclick = e => { e.stopPropagation(); if (vItem) savePhoto(vItem.photo, `kolle-${vItem.id.slice(0, 8)}.jpg`); };
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !viewer.hidden) closeViewer(); });
