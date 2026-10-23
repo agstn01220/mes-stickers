@@ -1354,7 +1354,8 @@ $("#nav-settings").onclick = async () => {
   try {
     const est = await navigator.storage?.estimate?.();
     const persisted = await navigator.storage?.persisted?.();
-    $("#storage-info").textContent = est ? `Espace utilisé : ${(est.usage / 1048576).toFixed(1)} Mo${persisted ? " · stockage persistant activé" : ""}` : "";
+    const v = (await caches.keys()).find(k => k.startsWith("mes-stickers-v"))?.split("-v")[1];
+    $("#storage-info").textContent = [v && `Version ${v}`, est && `Espace utilisé : ${(est.usage / 1048576).toFixed(1)} Mo`, persisted && "stockage persistant activé"].filter(Boolean).join(" · ");
   } catch (e) {}
 };
 // Rappel de sauvegarde : on retient la date de la dernière sauvegarde réussie
@@ -1451,7 +1452,18 @@ $("#in-backup").onchange = async e => {
   navigator.storage?.persist?.().catch(() => {});
   fillMissingPlaces();
   window.addEventListener("online", fillMissingPlaces);
-  if ("serviceWorker" in navigator && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  if ("serviceWorker" in navigator && location.protocol !== "file:") {
+    // iOS garde l'app ouverte en arrière-plan : on vérifie s'il y a une mise à jour à chaque retour dans l'app,
+    // et on recharge dès qu'elle est prête (sauf si une fenêtre est ouverte, pour ne rien perdre en cours de saisie).
+    navigator.serviceWorker.register("sw.js").then(reg => {
+      document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update().catch(() => {}); });
+    }).catch(() => {});
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloading || document.querySelector(".sheet-wrap.open") || !viewer.hidden) return;
+      reloading = true; location.reload();
+    });
+  }
 })();
 </script>
 </body>
